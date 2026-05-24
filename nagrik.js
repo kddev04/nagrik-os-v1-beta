@@ -2,6 +2,10 @@
 // © Krishant Dutta | Nagrik OS v3.0
 // To port to another city: replace CITY_CONFIG, WARD_GEO, SUB_GEO, CORPS
 // ═══════════════════════════════════════════════════════
+// ── BACKEND API ──────────────────────────────────────────────
+const BACKEND_URL = 'nagrik-os-v1-beta-production.up.railway.app'; // Your deployed URL
+const getJWT = () => localStorage.getItem('nagrik_jwt');
+const authHeaders = () => ({ 'Content-Type':'application/json', 'Authorization': `Bearer ${getJWT()}` });
 
 // ─ CITY CONFIG (change this per city) ─
 const CITY_CONFIG = {
@@ -1282,6 +1286,14 @@ function handleResize(){
 }
 
 function init(){
+  // Check if user is logged in
+const jwt = localStorage.getItem('nagrik_jwt');
+if (!jwt) {
+  // Save current URL, redirect to login
+  localStorage.setItem('nagrik_auth_redirect', window.location.href);
+  window.location.href = BACKEND_URL + '/login';
+  return;
+}
   // Restore saved mode
   try{
     const saved=localStorage.getItem('nagrik_mode');
