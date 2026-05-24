@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: nagrik-os-api
+    env: node
+    plan: free                # Change to 'starter' for production ($7/month)
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nagrik-os-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true   # Render auto-generates a secure value
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      # Fill these in Render dashboard → Environment:
+      - key: ALLOWED_ORIGINS
+        value: https://nagrik-os.onrender.com   # Your frontend URL
+      - key: EMAIL_PROVIDER
+        value: console                          # Change to 'resend' when ready
+      - key: RESEND_API_KEY
+        value: FILL_IN_RENDER_DASHBOARD
+      - key: EMAIL_FROM
+        value: noreply@yourdomain.com
+      - key: SMS_PROVIDER
+        value: disabled                         # Change to 'fast2sms' when ready
+      - key: CLOUDINARY_CLOUD_NAME
+        value: FILL_IN_RENDER_DASHBOARD
+      - key: CLOUDINARY_API_KEY
+        value: FILL_IN_RENDER_DASHBOARD
+      - key: CLOUDINARY_API_SECRET
+        value: FILL_IN_RENDER_DASHBOARD
+      - key: ADMIN_SECRET
+        generateValue: true
+
+databases:
+  - name: nagrik-os-db
+    plan: free                # Free tier: 1GB storage, expires after 90 days
+    databaseName: nagrik_db
+    user: nagrik_user
