@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en" data-mode="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login · Nagrik OS</title>
+  <meta name="description" content="Sign in to Nagrik OS — Civic Intelligence Platform">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <style>
+    /* ── RESET & BASE ───────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --void:    #050507;
+      --deep:    #0a0d14;
+      --card:    #111827;
+      --card2:   #1a2035;
+      --border:  rgba(255,255,255,.08);
+      --border2: rgba(255,255,255,.14);
+      --saffron: #ff7a1a;
+      --saffron2: #ff9a4a;
+      --text:    #f7f0e2;
+      --text2:   #c8bfaf;
+      --muted:   #8899aa;
+      --dim:     #4a5568;
+      --error:   #ef4444;
+      --success: #22c55e;
+      --indigo:  #4f7cff;
+    }
+
+    html { font-size: 16px; }
+
+    body {
+      font-family: 'IBM Plex Sans', sans-serif;
+      background: var(--void);
+      color: var(--text);
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ── BACKGROUND ATMOSPHERE ──────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(255,122,26,.12) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(79,124,255,.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    /* Grain texture */
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      opacity: .025;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+      pointer-events: none;
+    }
+
+    /* ── CARD ───────────────────────────────────────────────── */
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      padding: 40px 36px 36px;
+      position: relative;
+      z-index: 10;
+      box-shadow:
+        0 0 0 1px rgba(255,122,26,.06),
+        0 40px 80px -20px rgba(0,0,0,.6),
+        0 20px 40px -10px rgba(0,0,0,.4);
+      animation: cardIn .4s cubic-bezier(.16,1,.3,1) both;
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(24px) scale(.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Saffron top glow line */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 20%; right: 20%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--saffron), transparent);
+      border-radius: 0 0 50% 50%;
+    }
+
+    /* ── LOGO AREA ──────────────────────────────────────────── */
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .logo-svg {
+      width: 44px; height: 44px;
+      flex-shrink: 0;
+    }
+
+    .logo-text { display: flex; flex-direction: column; }
+
+    .logo-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 26px;
+      letter-spacing: 4px;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .logo-tag {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    /* ── SECTION TITLE ──────────────────────────────────────── */
+    .section-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text2);
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    .section-title strong {
+      color: var(--text);
+      display: block;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    /* ── METHOD TABS ────────────────────────────────────────── */
+    .method-tabs {
+      display: flex;
+      background: var(--deep);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 3px;
+      margin-bottom: 24px;
+      gap: 3px;
+    }
+
+    .method-tab {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 9px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .18s;
+    }
+
+    .method-tab.active {
+      background: var(--card2);
+      color: var(--text);
+      border: 1px solid var(--border2);
+    }
+
+    .method-tab:hover:not(.active) {
+      color: var(--text2);
+    }
+
+    .method-tab svg { flex-shrink: 0; }
+
+    /* ── STEPS CONTAINER ────────────────────────────────────── */
+    .steps { position: relative; overflow: hidden; }
+
+    .step {
+      display: none;
+      opacity: 0;
+      transform: translateX(20px);
+      transition: opacity .25s, transform .25s;
+    }
+
+    .step.active {
+      display: block;
+      opacity: 1;
+      transform: translateX(0);
+      animation: stepIn .25s cubic-bezier(.16,1,.3,1) both;
+    }
+
+    @keyframes stepIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ── INPUT FIELD ────────────────────────────────────────── */
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .field input {
+      width: 100%;
+      background: var(--deep);
+      border: 1.5px solid var(--border2);
+      border-radius: 10px;
+      padding: 13px 16px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 15px;
+      color: var(--text);
+      outline: none;
+      transition: border-color .18s, box-shadow .18s;
+      -webkit-appearance: none;
+    }
+
+    .field input::placeholder { color: var(--dim); }
+
+    .field input:focus {
+      border-color: var(--saffron);
+      box-shadow: 0 0 0 3px rgba(255,122,26,.15);
+    }
+
+    .field input.error-state {
+      border-color: var(--error);
+      box-shadow: 0 0 0 3px rgba(239,68,68,.12);
+    }
+
+    /* ── OTP BOXES ──────────────────────────────────────────── */
+    .otp-label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .otp-grid {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .otp-box {
+      flex: 1;
+      aspect-ratio: 1;
+      min-width: 0;
+      background: var(--deep);
+      border: 1.5px solid var(--border2);
+      border-radius: 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--text);
+      text-align: center;
+      outline: none;
+      caret-color: var(--saffron);
+      transition: border-color .15s, box-shadow .15s, transform .1s;
+      -webkit-appearance: none;
+    }
+
+    .otp-box:focus {
+      border-color: var(--saffron);
+      box-shadow: 0 0 0 3px rgba(255,122,26,.18);
+      transform: scale(1.05);
+    }
+
+    .otp-box.filled {
+      border-color: rgba(255,122,26,.5);
+      color: var(--saffron2);
+    }
+
+    .otp-box.error-state {
+      border-color: var(--error);
+      box-shadow: 0 0 0 3px rgba(239,68,68,.12);
+      animation: shake .3s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25%       { transform: translateX(-4px); }
+      75%       { transform: translateX(4px); }
+    }
+
+    /* ── TIMER ──────────────────────────────────────────────── */
+    .timer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .timer-display {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .timer-display.urgent { color: var(--error); }
+
+    .resend-btn {
+      font-size: 13px;
+      color: var(--saffron);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 500;
+      padding: 0;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      opacity: 1;
+      transition: opacity .15s;
+    }
+
+    .resend-btn:disabled {
+      color: var(--dim);
+      text-decoration: none;
+      cursor: not-allowed;
+      opacity: .5;
+    }
+
+    /* ── BACK LINK ──────────────────────────────────────────── */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 13px;
+      color: var(--muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: 'IBM Plex Sans', sans-serif;
+      padding: 0;
+      margin-bottom: 18px;
+      transition: color .15s;
+    }
+
+    .back-link:hover { color: var(--text); }
+
+    /* ── BUTTONS ────────────────────────────────────────────── */
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      background: var(--saffron);
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: .3px;
+      transition: background .15s, transform .1s, opacity .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary:hover:not(:disabled) { background: var(--saffron2); }
+    .btn-primary:active:not(:disabled) { transform: scale(.98); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* Loading spinner */
+    .btn-primary .spinner {
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(0,0,0,.2);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      display: none;
+    }
+
+    .btn-primary.loading .spinner { display: block; }
+    .btn-primary.loading .btn-text { opacity: 0; position: absolute; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── MESSAGES ───────────────────────────────────────────── */
+    .msg {
+      display: none;
+      padding: 11px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .msg.show { display: flex; align-items: flex-start; gap: 8px; }
+    .msg.error   { background: rgba(239,68,68,.1);  border: 1px solid rgba(239,68,68,.25);  color: #fca5a5; }
+    .msg.success { background: rgba(34,197,94,.1);  border: 1px solid rgba(34,197,94,.25);  color: #86efac; }
+    .msg.info    { background: rgba(79,124,255,.1); border: 1px solid rgba(79,124,255,.25); color: #93c5fd; }
+
+    .msg svg { flex-shrink: 0; margin-top: 1px; }
+
+    /* ── FOOTER ─────────────────────────────────────────────── */
+    .auth-footer {
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 11px;
+      color: var(--dim);
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: .5px;
+    }
+
+    .auth-footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+
+    /* ── SUCCESS STATE ───────────────────────────────────────── */
+    .success-state {
+      text-align: center;
+      padding: 20px 0;
+      display: none;
+    }
+
+    .success-state.show { display: block; }
+
+    .check-circle {
+      width: 64px; height: 64px;
+      background: rgba(34,197,94,.12);
+      border: 2px solid rgba(34,197,94,.4);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      animation: popIn .4s cubic-bezier(.34,1.56,.64,1) both .1s;
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    .success-state h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .success-state p {
+      font-size: 14px;
+      color: var(--text2);
+      margin-bottom: 20px;
+    }
+
+    /* ── RESPONSIVE ──────────────────────────────────────────── */
+    @media (max-width: 480px) {
+      .card { padding: 28px 22px 24px; border-radius: 16px; }
+      .otp-grid { gap: 7px; }
+      .otp-box  { border-radius: 8px; font-size: 20px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="card" id="card" role="main" aria-label="Login to Nagrik OS">
+
+  <!-- Logo -->
+  <div class="logo-area">
+    <svg class="logo-svg" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect width="44" height="44" rx="10" fill="#1a2035"/>
+      <rect x=".5" y=".5" width="43" height="43" rx="9.5" stroke="#ff7a1a" stroke-opacity=".3"/>
+      <path d="M13 32 L13 14 L22 26 L31 14 L31 32" stroke="#ff7a1a" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="logo-text">
+      <span class="logo-name">NAGRIK OS</span>
+      <span class="logo-tag">CIVIC INTELLIGENCE</span>
+    </div>
+  </div>
+
+  <!-- Success state -->
+  <div class="success-state" id="success-state" role="status" aria-live="polite">
+    <div class="check-circle" aria-hidden="true">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <h3 id="success-title">Welcome!</h3>
+    <p id="success-msg">You're logged in. Redirecting...</p>
+    <div class="btn-primary loading" style="pointer-events:none;max-width:200px;margin:0 auto">
+      <span class="spinner" style="display:block"></span>
+    </div>
+  </div>
+
+  <!-- Login form wrapper -->
+  <div id="form-wrapper">
+
+    <div class="section-title">
+      <strong>Sign in to Nagrik OS</strong>
+      No password needed — we'll send you a one-time code.
+    </div>
+
+    <!-- Method tabs -->
+    <div class="method-tabs" role="tablist" aria-label="Login method">
+      <button class="method-tab active" id="tab-email" role="tab" aria-selected="true"
+              aria-controls="steps-email" onclick="switchMethod('email')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 8l10 6 10-6"/></svg>
+        Email OTP
+      </button>
+      <button class="method-tab" id="tab-phone" role="tab" aria-selected="false"
+              aria-controls="steps-phone" onclick="switchMethod('phone')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+        Phone OTP
+      </button>
+    </div>
+
+    <!-- Message box -->
+    <div class="msg" id="msg" role="alert" aria-live="assertive">
+      <svg id="msg-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
+      <span id="msg-text"></span>
+    </div>
+
+    <!-- ── EMAIL STEPS ───────────────────────────────── -->
+    <div id="steps-email" role="tabpanel">
+      <!-- Step 1: Enter email -->
+      <div class="step active" id="email-step1">
+        <div class="field">
+          <label for="email-input">Email address</label>
+          <input type="email" id="email-input" placeholder="you@example.com"
+                 autocomplete="email" inputmode="email" spellcheck="false"
+                 onkeydown="if(event.key==='Enter') sendEmailOTP()">
+        </div>
+        <button class="btn-primary" id="btn-send-email" onclick="sendEmailOTP()">
+          <div class="spinner"></div>
+          <span class="btn-text">Send OTP →</span>
+        </button>
+      </div>
+
+      <!-- Step 2: Enter OTP -->
+      <div class="step" id="email-step2" aria-live="polite">
+        <button class="back-link" onclick="goBack('email')" aria-label="Go back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          Change email
+        </button>
+        <div class="otp-label">Enter 6-digit OTP sent to <span id="email-sent-to" style="color:var(--text)"></span></div>
+        <div class="otp-grid" id="email-otp-grid" role="group" aria-label="Enter OTP digits">
+          <input class="otp-box" maxlength="1" inputmode="numeric" pattern="\d" aria-label="Digit 1" autocomplete="one-time-code">
+          <input class="otp-box" maxlength="1" inputmode="numeric" pattern="\d" aria-label="Digit 2">
+          <input class="otp-box" maxlength="1" inputmode="numeric" pattern="\d" aria-label="Digit 3">
+          <input class="otp-box" maxlength="1" inputmode="numeric" pattern="\d" aria-label="Digit 4">
+          <input class="otp-box" maxlength="1" inputmode="numeric" pattern="\d" aria-label="Digit 5">
+          <input class="otp-box" maxlength="1" inputmode="numeric" pattern="\d" aria-label="Digit 6">
+        </div>
+        <div class="timer-row">
+          <span class="timer-display" id="email-timer">5:00</span>
+          <button class="resend-btn" id="email-resend" onclick="resendOTP('email')" disabled>Resend OTP</button>
+        </div>
+        <button class="btn-primary" id="btn-verify-email" onclick="verifyEmailOTP()" disabled>
+          <div class="spinner"></div>
+          <span class="btn-text">Verify & Sign In →</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── PHONE STEPS ───────────────────────────────── -->
+    <div id="steps-phone" style="display:none" role="tabpanel">
+      <!-- Step 1: Enter phone -->
+      <div class="step active" id="phone-step1">
+        <div class="field">
+          <label for="phone-input">Mobile number</label>
+          <input type="tel" id="phone-input" placeholder="9876543210"
+                 autocomplete="tel" inputmode="tel" maxlength="15"
+                 onkeydown="if(event.key==='Enter') sendPhoneOTP()">
+        </div>
+        <button class="btn-primary" id="btn-send-phone" onclick="sendPhoneOTP()">
+          <div class="spinner"></div>
+          <span class="btn-text">Send OTP →</span>
+        </button>
+      </div>
+
+      <!-- Step 2: Enter OTP -->
+      <div class="step" id="phone-step2" aria-live="polite">
+        <button class="back-link" onclick="goBack('phone')" aria-label="Go back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          Change number
+        </button>
+        <div class="otp-label">Enter 6-digit OTP sent to <span id="phone-sent-to" style="color:var(--text)"></span></div>
+        <div class="otp-grid" id="phone-otp-grid" role="group" aria-label="Enter OTP digits">
+          <input class="otp-box" maxlength="1" inputmode="numeric" pattern="\d" aria-label="Digit 1" autocomplete="one-time-code">
+          <input class="otp-box" maxlength="1" inputmode="numeric" pattern="\d" aria-label="Digit 2">
+          <input class="otp-box" maxlength="1" inputmode="numeric" pattern="\d" aria-label="Digit 3">
+          <input class="otp-box" maxlength="1" inputmode="numeric" pattern="\d" aria-label="Digit 4">
+          <input class="otp-box" maxlength="1" inputmode="numeric" pattern="\d" aria-label="Digit 5">
+          <input class="otp-box" maxlength="1" inputmode="numeric" pattern="\d" aria-label="Digit 6">
+        </div>
+        <div class="timer-row">
+          <span class="timer-display" id="phone-timer">5:00</span>
+          <button class="resend-btn" id="phone-resend" onclick="resendOTP('phone')" disabled>Resend OTP</button>
+        </div>
+        <button class="btn-primary" id="btn-verify-phone" onclick="verifyPhoneOTP()" disabled>
+          <div class="spinner"></div>
+          <span class="btn-text">Verify & Sign In →</span>
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /form-wrapper -->
+
+  <div class="auth-footer">
+    <span>© 2026 Nagrik OS · </span>
+    <a href="#" onclick="return false">Privacy</a>
+    <span> · </span>
+    <a href="#" onclick="return false">Terms</a>
+    <br>
+    <span style="margin-top:6px;display:block;">सत्यमेव जयते · Open Civic Data</span>
+  </div>
+
+</div><!-- /card -->
+
+<script>
+'use strict';
+
+// ── CONFIG ────────────────────────────────────────────────────
+// API base URL: same origin (backend serves this page)
+const API = '';  // Empty = same origin. For external: 'https://api.nagrikos.in'
+const REDIRECT_URL = localStorage.getItem('nagrik_auth_redirect') || '/';
+const OTP_EXPIRY_SEC = 300; // 5 minutes
+
+// ── STATE ─────────────────────────────────────────────────────
+let currentMethod = 'email';
+let timerInterval = null;
+let timerSeconds  = OTP_EXPIRY_SEC;
+
+// ── HELPERS ───────────────────────────────────────────────────
+
+const $ = (id) => document.getElementById(id);
+
+const showMsg = (text, type = 'error') => {
+  const el = $('msg');
+  const icon = $('msg-icon');
+  el.className = `msg show ${type}`;
+  $('msg-text').textContent = text;
+  const icons = {
+    error:   'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0-6v-4m0 8h.01',
+    success: 'M20 6L9 17l-5-5',
+    info:    'M12 16v-4m0-4h.01M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z',
+  };
+  icon.innerHTML = `<path d="${icons[type]||icons.info}" stroke-linecap="round" stroke-linejoin="round"/>`;
+};
+
+const hideMsg = () => { $('msg').className = 'msg'; };
+
+const setLoading = (btnId, loading) => {
+  const btn = $(btnId);
+  if (!btn) return;
+  if (loading) { btn.classList.add('loading'); btn.disabled = true; }
+  else         { btn.classList.remove('loading'); btn.disabled = false; }
+};
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// ── METHOD SWITCH ─────────────────────────────────────────────
+
+const switchMethod = (method) => {
+  currentMethod = method;
+  hideMsg();
+  stopTimer();
+
+  // Tabs
+  ['email', 'phone'].forEach(m => {
+    $(`tab-${m}`).classList.toggle('active', m === method);
+    $(`tab-${m}`).setAttribute('aria-selected', m === method);
+    $(`steps-${m}`).style.display = m === method ? 'block' : 'none';
+  });
+
+  // Reset to step 1
+  goBack(method);
+};
+
+// ── OTP GRID SETUP ────────────────────────────────────────────
+
+const setupOTPGrid = (gridId, verifyBtnId, autoSubmit) => {
+  const grid   = $(gridId);
+  const inputs = grid.querySelectorAll('.otp-box');
+  const btn    = $(verifyBtnId);
+
+  const checkComplete = () => {
+    const val = getOTP(gridId);
+    btn.disabled = val.length !== 6;
+    // Auto-submit when all 6 filled
+    if (val.length === 6 && autoSubmit) {
+      setTimeout(() => autoSubmit(), 200);
+    }
+  };
+
+  inputs.forEach((box, i) => {
+    box.addEventListener('input', (e) => {
+      const v = e.target.value.replace(/\D/g, '');
+      box.value = v ? v[v.length - 1] : '';
+      box.classList.toggle('filled', !!box.value);
+      if (box.value && i < inputs.length - 1) inputs[i + 1].focus();
+      checkComplete();
+    });
+
+    box.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !box.value && i > 0) {
+        inputs[i - 1].value = '';
+        inputs[i - 1].classList.remove('filled');
+        inputs[i - 1].focus();
+        checkComplete();
+      }
+      if (e.key === 'ArrowLeft'  && i > 0) inputs[i - 1].focus();
+      if (e.key === 'ArrowRight' && i < inputs.length - 1) inputs[i + 1].focus();
+    });
+
+    // Handle paste (paste full OTP at once)
+    box.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text');
+      const digits = text.replace(/\D/g, '').substring(0, 6);
+      if (digits.length) {
+        [...inputs].forEach((inp, idx) => {
+          inp.value = digits[idx] || '';
+          inp.classList.toggle('filled', !!inp.value);
+        });
+        inputs[Math.min(digits.length, inputs.length - 1)].focus();
+        checkComplete();
+      }
+    });
+  });
+};
+
+const getOTP = (gridId) => {
+  return [...$(gridId).querySelectorAll('.otp-box')].map(b => b.value).join('');
+};
+
+const clearOTP = (gridId) => {
+  $(gridId).querySelectorAll('.otp-box').forEach(b => {
+    b.value = '';
+    b.classList.remove('filled', 'error-state');
+  });
+};
+
+const shakeOTP = (gridId) => {
+  $(gridId).querySelectorAll('.otp-box').forEach(b => {
+    b.classList.add('error-state');
+    setTimeout(() => b.classList.remove('error-state'), 500);
+  });
+};
+
+// ── TIMER ─────────────────────────────────────────────────────
+
+const startTimer = (displayId, resendId) => {
+  stopTimer();
+  timerSeconds = OTP_EXPIRY_SEC;
+  const display = $(displayId);
+  const resend  = $(resendId);
+  if (resend) resend.disabled = true;
+
+  const update = () => {
+    const m = Math.floor(timerSeconds / 60);
+    const s = timerSeconds % 60;
+    display.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+    display.classList.toggle('urgent', timerSeconds <= 30);
+
+    if (timerSeconds <= 0) {
+      stopTimer();
+      display.textContent = 'Expired';
+      if (resend) resend.disabled = false;
+      showMsg('OTP expired. Please request a new one.', 'info');
+    } else {
+      timerSeconds--;
+      timerInterval = setTimeout(update, 1000);
+    }
+  };
+  update();
+};
+
+const stopTimer = () => {
+  if (timerInterval) { clearTimeout(timerInterval); timerInterval = null; }
+};
+
+// ── STEP NAVIGATION ───────────────────────────────────────────
+
+const showStep = (method, step) => {
+  $(`${method}-step1`).classList.remove('active');
+  $(`${method}-step2`).classList.remove('active');
+  $(`${method}-step${step}`).classList.add('active');
+};
+
+const goBack = (method) => {
+  stopTimer();
+  hideMsg();
+  clearOTP(`${method}-otp-grid`);
+  showStep(method, 1);
+  if (method === 'email') $('email-input').focus();
+  else                    $('phone-input').focus();
+};
+
+// ── API CALLS ─────────────────────────────────────────────────
+
+const apiPost = async (endpoint, data) => {
+  const res = await fetch(`${API}${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  const json = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data: json };
+};
+
+// ── SEND EMAIL OTP ────────────────────────────────────────────
+
+const sendEmailOTP = async () => {
+  const email = $('email-input').value.trim();
+  if (!email) { showMsg('Please enter your email address', 'error'); $('email-input').focus(); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    showMsg('Please enter a valid email address', 'error');
+    $('email-input').classList.add('error-state');
+    return;
+  }
+
+  $('email-input').classList.remove('error-state');
+  setLoading('btn-send-email', true);
+  hideMsg();
+
+  const { ok, data } = await apiPost('/api/auth/send-email-otp', { email });
+  setLoading('btn-send-email', false);
+
+  if (!ok) {
+    showMsg(data.error || 'Failed to send OTP. Please try again.', 'error');
+    return;
+  }
+
+  // Move to step 2
+  $('email-sent-to').textContent = email.replace(/(?<=.{3}).(?=.*@)/g, '*');
+  showStep('email', 2);
+  startTimer('email-timer', 'email-resend');
+  setTimeout(() => $('email-otp-grid').querySelector('.otp-box').focus(), 100);
+};
+
+// ── VERIFY EMAIL OTP ──────────────────────────────────────────
+
+const verifyEmailOTP = async () => {
+  const email = $('email-input').value.trim();
+  const otp   = getOTP('email-otp-grid');
+
+  if (otp.length !== 6) { showMsg('Please enter all 6 digits', 'error'); return; }
+
+  setLoading('btn-verify-email', true);
+  hideMsg();
+
+  const { ok, data } = await apiPost('/api/auth/verify-email-otp', { email, otp });
+  setLoading('btn-verify-email', false);
+
+  if (!ok) {
+    shakeOTP('email-otp-grid');
+    const attemptsMsg = data.attemptsRemaining !== undefined
+      ? ` (${data.attemptsRemaining} attempt${data.attemptsRemaining !== 1 ? 's' : ''} left)`
+      : '';
+    showMsg((data.error || 'Invalid OTP') + attemptsMsg, 'error');
+    if (data.code === 'MAX_ATTEMPTS' || data.code === 'EXPIRED') {
+      clearOTP('email-otp-grid');
+      showMsg(data.error + ' Please request a new OTP.', 'error');
+    }
+    return;
+  }
+
+  stopTimer();
+  onLoginSuccess(data);
+};
+
+// ── SEND PHONE OTP ────────────────────────────────────────────
+
+const sendPhoneOTP = async () => {
+  const phone = $('phone-input').value.trim().replace(/\D/g, '');
+  if (!phone) { showMsg('Please enter your mobile number', 'error'); return; }
+  if (!/^[6-9]\d{9}$/.test(phone)) {
+    showMsg('Please enter a valid 10-digit Indian mobile number (starts with 6–9)', 'error');
+    $('phone-input').classList.add('error-state');
+    return;
+  }
+
+  $('phone-input').classList.remove('error-state');
+  setLoading('btn-send-phone', true);
+  hideMsg();
+
+  const { ok, data } = await apiPost('/api/auth/send-phone-otp', { phone });
+  setLoading('btn-send-phone', false);
+
+  if (!ok) {
+    showMsg(data.error || 'Failed to send OTP. Please try again.', 'error');
+    return;
+  }
+
+  $('phone-sent-to').textContent = phone.replace(/(\d{2})\d{6}(\d{2})/, '$1XXXXXX$2');
+  showStep('phone', 2);
+  startTimer('phone-timer', 'phone-resend');
+  setTimeout(() => $('phone-otp-grid').querySelector('.otp-box').focus(), 100);
+};
+
+// ── VERIFY PHONE OTP ──────────────────────────────────────────
+
+const verifyPhoneOTP = async () => {
+  const phone = $('phone-input').value.trim().replace(/\D/g, '');
+  const otp   = getOTP('phone-otp-grid');
+
+  if (otp.length !== 6) { showMsg('Please enter all 6 digits', 'error'); return; }
+
+  setLoading('btn-verify-phone', true);
+  hideMsg();
+
+  const { ok, data } = await apiPost('/api/auth/verify-phone-otp', { phone, otp });
+  setLoading('btn-verify-phone', false);
+
+  if (!ok) {
+    shakeOTP('phone-otp-grid');
+    const attemptsMsg = data.attemptsRemaining !== undefined
+      ? ` (${data.attemptsRemaining} attempt${data.attemptsRemaining !== 1 ? 's' : ''} left)`
+      : '';
+    showMsg((data.error || 'Invalid OTP') + attemptsMsg, 'error');
+    if (data.code === 'MAX_ATTEMPTS' || data.code === 'EXPIRED') clearOTP('phone-otp-grid');
+    return;
+  }
+
+  stopTimer();
+  onLoginSuccess(data);
+};
+
+// ── RESEND OTP ────────────────────────────────────────────────
+
+const resendOTP = async (method) => {
+  clearOTP(`${method}-otp-grid`);
+  hideMsg();
+  stopTimer();
+
+  if (method === 'email') {
+    await sendEmailOTP();
+    if ($(`${method}-step2`).classList.contains('active')) {
+      startTimer('email-timer', 'email-resend');
+    }
+  } else {
+    await sendPhoneOTP();
+    if ($(`${method}-step2`).classList.contains('active')) {
+      startTimer('phone-timer', 'phone-resend');
+    }
+  }
+};
+
+// ── LOGIN SUCCESS ─────────────────────────────────────────────
+
+const onLoginSuccess = (data) => {
+  // Store tokens
+  try {
+    localStorage.setItem('nagrik_jwt',         data.accessToken);
+    localStorage.setItem('nagrik_refresh',     data.refreshToken);
+    localStorage.setItem('nagrik_user',        JSON.stringify(data.user));
+    localStorage.removeItem('nagrik_auth_redirect');
+  } catch (e) { /* storage unavailable */ }
+
+  // Show success state
+  $('form-wrapper').style.display = 'none';
+  const successState = $('success-state');
+  successState.classList.add('show');
+  $('success-title').textContent = data.isNew
+    ? `Welcome to Nagrik OS!`
+    : `Welcome back${data.user?.name ? ', ' + data.user.name.split(' ')[0] : ''}!`;
+  $('success-msg').textContent = data.isNew
+    ? 'Your account has been created. Redirecting to the app...'
+    : 'Logged in successfully. Redirecting...';
+
+  // Redirect after brief pause
+  setTimeout(() => {
+    window.location.href = REDIRECT_URL;
+  }, 1800);
+};
+
+// ── INIT ──────────────────────────────────────────────────────
+
+const init = () => {
+  // If already logged in, redirect immediately
+  const token = localStorage.getItem('nagrik_jwt');
+  if (token) {
+    // Quick validation (just check if token looks valid, not expired check)
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.exp * 1000 > Date.now()) {
+        window.location.href = REDIRECT_URL;
+        return;
+      }
+    } catch (e) { /* invalid token — continue to login */ }
+  }
+
+  // Setup OTP grids with auto-submit
+  setupOTPGrid('email-otp-grid', 'btn-verify-email', verifyEmailOTP);
+  setupOTPGrid('phone-otp-grid', 'btn-verify-phone', verifyPhoneOTP);
+
+  // Focus first input
+  setTimeout(() => $('email-input').focus(), 300);
+
+  // Check URL for method preference
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('method') === 'phone') switchMethod('phone');
+
+  // Store redirect if provided
+  const redirectTo = params.get('redirect');
+  if (redirectTo) localStorage.setItem('nagrik_auth_redirect', redirectTo);
+};
+
+init();
+</script>
+</body>
+</html>
