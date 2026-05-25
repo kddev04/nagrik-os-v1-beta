@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en" data-mode="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,viewport-fit=cover">
+<meta name="theme-color" content="#f3ead8" media="(prefers-color-scheme:light)">
+<meta name="theme-color" content="#050507" media="(prefers-color-scheme:dark)">
+<meta name="description" content="Nagrik OS — Civic accountability platform. Every corporator, MLA, MP mapped. File geotagged grievances.">
+<title>NAGRIK OS · Pune Civic Intelligence</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 44'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%230d1528'/%3E%3Cstop offset='100%25' stop-color='%231a2a4a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M20 2 L36 11 L36 33 L20 42 L4 33 L4 11 Z' fill='url(%23bg)'/%3E%3Cpath d='M20 2 L36 11 L36 22' stroke='%23ff7a1a' stroke-width='2' fill='none'/%3E%3Cpath d='M36 22 L36 33 L28 38' stroke='%23ffffff' stroke-width='2' fill='none'/%3E%3Cpath d='M28 38 L20 42 L4 33 L4 11 L20 2' stroke='%23138808' stroke-width='2' fill='none'/%3E%3Ccircle cx='20' cy='13' r='4' fill='none' stroke='%234f7cff' stroke-width='1'/%3E%3Ccircle cx='20' cy='13' r='1.5' fill='%234f7cff'/%3E%3Cline x1='20' y1='9' x2='20' y2='11' stroke='%234f7cff' stroke-width='0.9'/%3E%3Cline x1='20' y1='15' x2='20' y2='17' stroke='%234f7cff' stroke-width='0.9'/%3E%3Cline x1='16' y1='13' x2='18' y2='13' stroke='%234f7cff' stroke-width='0.9'/%3E%3Cline x1='22' y1='13' x2='24' y2='13' stroke='%234f7cff' stroke-width='0.9'/%3E%3Cline x1='17.2' y1='10.2' x2='18.6' y2='11.6' stroke='%234f7cff' stroke-width='0.9'/%3E%3Cline x1='21.4' y1='14.4' x2='22.8' y2='15.8' stroke='%234f7cff' stroke-width='0.9'/%3E%3Cline x1='22.8' y1='10.2' x2='21.4' y2='11.6' stroke='%234f7cff' stroke-width='0.9'/%3E%3Cline x1='18.6' y1='14.4' x2='17.2' y2='15.8' stroke='%234f7cff' stroke-width='0.9'/%3E%3Cpath d='M13 40 L13 23 L20 33 L27 23 L27 40' stroke='white' stroke-width='2.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 44'%3E%3Crect width='40' height='44' rx='10' fill='%230d1528'/%3E%3Cpath d='M13 38 L13 21 L20 31 L27 21 L27 38' stroke='%23ff7a1a' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Noto+Sans+Devanagari:wght@400;600;700;900&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="nagrik.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div class="tiranga"></div>
+
+<!-- TOP NAV -->
+<nav class="topnav" role="navigation" aria-label="Site navigation">
+  <a class="tn-brand" onclick="goPage('home')" href="#" aria-label="Nagrik OS Home">
+    <svg class="tn-logo-svg" viewBox="0 0 40 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <linearGradient id="ng-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0d1528"/>
+          <stop offset="100%" stop-color="#1a2a4a"/>
+        </linearGradient>
+      </defs>
+      <!-- Hexagon body -->
+      <path d="M20 2 L36 11 L36 33 L20 42 L4 33 L4 11 Z" fill="url(#ng-bg)"/>
+      <!-- Tricolor border: saffron left/top, white right, green bottom -->
+      <path d="M20 2 L36 11 L36 22" stroke="#ff7a1a" stroke-width="2" fill="none"/>
+      <path d="M36 22 L36 33 L28 38" stroke="#ffffff" stroke-width="2" fill="none"/>
+      <path d="M28 38 L20 42 L4 33 L4 11 L20 2" stroke="#138808" stroke-width="2" fill="none"/>
+      <!-- Ashoka Chakra (8-spoke) -->
+      <circle cx="20" cy="13" r="4.5" fill="none" stroke="#4f7cff" stroke-width="1"/>
+      <circle cx="20" cy="13" r="1.5" fill="#4f7cff"/>
+      <line x1="20" y1="8.5" x2="20" y2="11" stroke="#4f7cff" stroke-width="0.9"/>
+      <line x1="20" y1="15" x2="20" y2="17.5" stroke="#4f7cff" stroke-width="0.9"/>
+      <line x1="15.5" y1="13" x2="18" y2="13" stroke="#4f7cff" stroke-width="0.9"/>
+      <line x1="22" y1="13" x2="24.5" y2="13" stroke="#4f7cff" stroke-width="0.9"/>
+      <line x1="16.8" y1="10.2" x2="18.5" y2="11.5" stroke="#4f7cff" stroke-width="0.9"/>
+      <line x1="21.5" y1="14.5" x2="23.2" y2="15.8" stroke="#4f7cff" stroke-width="0.9"/>
+      <line x1="23.2" y1="10.2" x2="21.5" y2="11.5" stroke="#4f7cff" stroke-width="0.9"/>
+      <line x1="18.5" y1="14.5" x2="16.8" y2="15.8" stroke="#4f7cff" stroke-width="0.9"/>
+      <!-- N letterform (civic beacon) -->
+      <path d="M13 40 L13 22 L20 32 L27 22 L27 40" stroke="white" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <div class="tn-name" aria-label="Nagrik OS">NAGRIK OS</div>
+      <span class="tn-city" id="city-label">PUNE · CIVIC INTELLIGENCE</span>
+    </div>
+  </a>
+
+  <div class="tn-tabs" id="topnav-tabs">
+    <button class="tn-tab active" data-page="home" onclick="goPage('home')">
+      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>
+      Map
+    </button>
+    <button class="tn-tab" data-page="corp" onclick="goPage('corp')">
+      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="9" cy="8" r="3"/><path d="M2 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/><polyline points="17 11 19 13 23 9"/></svg>
+      Corporators
+    </button>
+    <button class="tn-tab" data-page="mla" onclick="goPage('mla')">
+      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z"/></svg>
+      MLAs
+    </button>
+    <button class="tn-tab" data-page="mp" onclick="goPage('mp')">
+      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>
+      MPs
+    </button>
+    <button class="tn-tab" data-page="pillars" onclick="goPage('pillars')">
+      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3l-8 4v2h16V7l-8-4zM4 9v11M8 9v11M12 9v11M16 9v11M20 9v11M2 20h20"/></svg>
+      4 Pillars
+    </button>
+    <button class="tn-tab" data-page="rti" onclick="goPage('rti')">
+      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></svg>
+      RTI
+    </button>
+    <button class="tn-tab" data-page="grievance" onclick="goPage('grievance')">
+      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 11.5a8.5 8.5 0 1 1-13.1-7.1L3 21l5.7-1.9A8.38 8.38 0 0 0 12 20a8.5 8.5 0 0 0 9-8.5z"/></svg>
+      Grievances
+      <span class="tbadge" id="griev-badge" style="display:none">0</span>
+    </button>
+  </div>
+
+  <button class="tn-burger" onclick="toggleLP()" aria-label="Menu">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+
+  <div class="tn-util">
+    <!-- City selector -->
+    <select class="city-sel" onchange="handleCityChange(this)" aria-label="Select city" title="Select City">
+      <option value="Pune">🏙 Pune</option>
+      <option value="Delhi">Delhi (soon)</option>
+      <option value="Mumbai">Mumbai (soon)</option>
+      <option value="Bengaluru">Bengaluru (soon)</option>
+      <option value="Hyderabad">Hyderabad (soon)</option>
+      <option value="Chennai">Chennai (soon)</option>
+      <option value="Kolkata">Kolkata (soon)</option>
+      <option value="Ahmedabad">Ahmedabad (soon)</option>
+      <option value="Jaipur">Jaipur (soon)</option>
+      <option value="Lucknow">Lucknow (soon)</option>
+    </select>
+    <!-- Language toggle -->
+    <button class="tn-util-btn" id="lang-btn" onclick="cycleLang()" title="Change Language" aria-label="Change language">EN</button>
+    <!-- Dark mode toggle -->
+    <button class="tn-util-btn" id="mode-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode" aria-label="Toggle dark mode">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <div class="tn-status"><div class="live-dot"></div><span style="font-family:'IBM Plex Mono',monospace;font-size:10px">LIVE</span></div>
+    <div class="tn-clock" id="clock">--:--:--</div>
+  </div>
+</nav>
+
+<div class="topnav-offset" aria-hidden="true"></div>
+<!-- MASTHEAD -->
+<header class="masthead">
+  <div class="mh-inner">
+    <div>
+      <div class="mh-deva">नागरिक OS</div>
+      <h1 class="mh-title">CIVIC INTELLIGENCE</h1>
+      <p class="mh-sub">Every <strong>corporator</strong>, <strong>MLA</strong>, and <strong>MP</strong> in Pune — mapped, named, and answerable. <em>Locate yourself, rate your representatives, file geotagged grievances, and know your rights.</em></p>
+      <div class="mh-meta">
+        <div class="mh-dot"></div><span id="mh-date">FRI · 23 MAY 2026</span>
+        <div class="mh-dot"></div><span>EDITION 03</span>
+        <div class="mh-dot"></div><span>© KRISHANT DUTTA</span>
+        <div class="mh-dot"></div><span>OPEN CIVIC DATA</span>
+      </div>
+    </div>
+    <div class="mh-stats">
+      <div class="mh-stat"><div class="mh-stat-n c-saffron">41</div><div class="mh-stat-l">Wards</div></div>
+      <div class="mh-stat"><div class="mh-stat-n">165</div><div class="mh-stat-l">Corporators</div></div>
+      <div class="mh-stat"><div class="mh-stat-n c-indigo">21</div><div class="mh-stat-l">MLAs</div></div>
+      <div class="mh-stat"><div class="mh-stat-n c-mint">4</div><div class="mh-stat-l">MPs</div></div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════ PAGE: MAP ═══════════ -->
+<div class="page active" id="page-home">
+  <div class="lp-backdrop" id="lp-backdrop" onclick="closeLP()"></div>
+  <div class="viewport">
+    <aside class="lp" id="lp">
+      <div class="lp-head">
+        <div class="lp-head-txt">Map Layers</div>
+        <button class="lp-collapse-btn" onclick="toggleLPCollapse()" title="Collapse">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+      </div>
+
+      <!-- Boundary Layers -->
+      <div class="lp-sect" data-key="layers">
+        <div class="lp-sec-title" onclick="toggleSect('layers')">
+          <span class="lp-sec-label">Boundary Layers</span>
+          <svg class="lp-chev" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="lp-sect-body">
+          <div class="layer-row">
+            <label class="layer-lbl" for="lyr-ward"><span class="layer-swatch" style="background:rgba(255,122,26,.4);border-color:var(--saffron)"></span>PMC Wards <small>· 41</small></label>
+            <label class="tswitch"><input type="checkbox" id="lyr-ward" checked onchange="toggleLayer('ward')"><span class="tslider"></span></label>
+          </div>
+          <div class="layer-row">
+            <label class="layer-lbl" for="lyr-sub"><span class="layer-swatch" style="background:rgba(255,201,77,.4);border-color:var(--gold)"></span>Sub-Wards A·B·C·D <small>· 165</small></label>
+            <label class="tswitch"><input type="checkbox" id="lyr-sub" onchange="toggleLayer('sub')"><span class="tslider"></span></label>
+          </div>
+          <div class="layer-row">
+            <label class="layer-lbl" for="lyr-mla"><span class="layer-swatch" style="background:rgba(79,124,255,.4);border-color:var(--indigo)"></span>MLA Constituencies <small>· 21</small></label>
+            <label class="tswitch"><input type="checkbox" id="lyr-mla" onchange="toggleLayer('mla')"><span class="tslider"></span></label>
+          </div>
+          <div class="layer-row">
+            <label class="layer-lbl" for="lyr-mp"><span class="layer-swatch" style="background:rgba(168,85,247,.4);border-color:var(--purple)"></span>MP / Lok Sabha <small>· 4</small></label>
+            <label class="tswitch"><input type="checkbox" id="lyr-mp" onchange="toggleLayer('mp')"><span class="tslider"></span></label>
+          </div>
+          <div class="sw-selector" id="sw-selector">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px">Filter Seat</div>
+            <div class="sw-row active" onclick="filterSW('all')" data-s="all"><span class="sw-letter">·</span><span class="sw-name">All Seats</span><span class="sw-n">165</span></div>
+            <div class="sw-row" onclick="filterSW('A')" data-s="A"><span class="sw-letter">A</span><span class="sw-name">Seat A</span><span class="sw-n">41</span></div>
+            <div class="sw-row" onclick="filterSW('B')" data-s="B"><span class="sw-letter">B</span><span class="sw-name">Seat B</span><span class="sw-n">41</span></div>
+            <div class="sw-row" onclick="filterSW('C')" data-s="C"><span class="sw-letter">C</span><span class="sw-name">Seat C</span><span class="sw-n">41</span></div>
+            <div class="sw-row" onclick="filterSW('D')" data-s="D"><span class="sw-letter">D</span><span class="sw-name">Seat D</span><span class="sw-n">41</span></div>
+            <div class="sw-row" onclick="filterSW('E')" data-s="E"><span class="sw-letter">E</span><span class="sw-name">Seat E (W38)</span><span class="sw-n">1</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- User Ratings -->
+      <div class="lp-sect c-gold" data-key="ratings">
+        <div class="lp-sec-title" onclick="toggleSect('ratings')">
+          <span class="lp-sec-label">Rate Selected Ward</span>
+          <svg class="lp-chev" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="lp-sect-body">
+          <div id="lp-rating-ward" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:8px">Click a ward on the map to rate it</div>
+          <div class="star-row">
+            <div class="star-lbl">😊 Satisfaction<br><small style="font-size:9px;color:var(--muted)">Services, roads, water…</small></div>
+            <div class="stars" id="lp-sat-stars"></div>
+          </div>
+          <div class="star-row" style="margin-top:6px">
+            <div class="star-lbl">👩 Women's Safety<br><small style="font-size:9px;color:var(--muted)">How safe do women feel?</small></div>
+            <div class="stars" id="lp-saf-stars"></div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);margin-top:8px;padding:6px 8px;background:rgba(255,201,77,.05);border:1px solid rgba(255,201,77,.2);border-radius:4px;line-height:1.5">Ratings are stored locally in your browser. No login required.</div>
+        </div>
+      </div>
+
+      <!-- Party Legend -->
+      <div class="lp-sect c-indigo closed" data-key="parties">
+        <div class="lp-sec-title" onclick="toggleSect('parties')">
+          <span class="lp-sec-label">Party Colors</span>
+          <svg class="lp-chev" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="lp-sect-body">
+          <div class="party-row"><span class="p-dot" style="background:var(--bjp)"></span>BJP · भाजपा</div>
+          <div class="party-row"><span class="p-dot" style="background:var(--ncp)"></span>NCP (Ajit Pawar)</div>
+          <div class="party-row"><span class="p-dot" style="background:var(--ncpsp)"></span>NCP (SP · Sharad Pawar)</div>
+          <div class="party-row"><span class="p-dot" style="background:var(--inc)"></span>INC · काँग्रेस</div>
+          <div class="party-row"><span class="p-dot" style="background:var(--ss-ubt)"></span>Shiv Sena (UBT)</div>
+          <div class="party-row"><span class="p-dot" style="background:var(--ss-sh)"></span>Shiv Sena (Shinde)</div>
+          <div class="party-row"><span class="p-dot" style="background:var(--mns)"></span>MNS</div>
+          <div class="party-row"><span class="p-dot" style="background:var(--ind)"></span>Independent · अपक्ष</div>
+        </div>
+      </div>
+
+      <!-- Tools -->
+      <div class="lp-sect c-purple" data-key="tools">
+        <div class="lp-sec-title" onclick="toggleSect('tools')">
+          <span class="lp-sec-label">Your Tools</span>
+          <svg class="lp-chev" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="lp-sect-body">
+          <button class="locate-btn" id="locate-btn" onclick="locateUser()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="14" height="14"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M1 12h2M21 12h2M19.78 19.78l-1.41-1.41M5.64 5.64L4.22 4.22M19.78 4.22l-1.41 1.41M5.64 18.36L4.22 19.78"/></svg>
+            <span id="locate-txt">Locate Me on Map</span>
+          </button>
+          <button class="griev-btn" onclick="openGrievModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="14" height="14"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Submit Grievance
+          </button>
+        </div>
+      </div>
+
+      <!-- Crime / Safety -->
+      <div class="lp-sect c-red closed" data-key="crime">
+        <div class="lp-sec-title" onclick="toggleSect('crime')">
+          <span class="lp-sec-label">Safety Data — Pune</span>
+          <svg class="lp-chev" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="lp-sect-body">
+          <div class="crime-rating-section">
+            <h4>NCRB 2023 · Pune District</h4>
+            <div class="crime-stat"><span>Crimes against women</span><strong style="color:var(--red)">4,127</strong></div>
+            <div class="crime-bar"><div class="crime-fill" style="width:78%"></div></div>
+            <div class="crime-stat" style="margin-top:8px"><span>Rape & sexual assault</span><strong style="color:var(--red)">312</strong></div>
+            <div class="crime-bar"><div class="crime-fill" style="width:42%"></div></div>
+            <div class="crime-stat" style="margin-top:8px"><span>Molestation / harassment</span><strong style="color:var(--red)">689</strong></div>
+            <div class="crime-bar"><div class="crime-fill" style="width:55%"></div></div>
+            <div class="crime-stat" style="margin-top:8px"><span>Cyber crime against women</span><strong style="color:var(--red)">518</strong></div>
+            <div class="crime-bar"><div class="crime-fill" style="width:48%"></div></div>
+            <div style="margin-top:12px;padding:8px;background:rgba(255,59,85,.08);border:1px solid rgba(255,59,85,.25);border-radius:5px;font-size:11px;color:var(--text2);line-height:1.55">
+              <strong style="color:var(--red);font-size:11px">High-risk zones:</strong> Yerawada, Wanowrie, Hadapsar, Kothrud-Warje corridors. Night-time isolated areas near industrial zones.
+            </div>
+          </div>
+          <div style="margin-top:4px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Community Safety Ratings</div>
+            <div id="lp-crime-ward-ratings" style="font-size:11.5px;color:var(--muted);font-style:italic">Select a ward to see community ratings</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAP -->
+    <div class="mapwrap">
+      <div id="map" role="application" aria-label="Interactive Pune civic map" id="main-content"></div>
+      <div class="map-info" id="map-info"></div>
+      <div class="map-fabs">
+        <button class="fab" onclick="resetMap()" title="Reset view"><span class="fab-tip">Reset View</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 4v6h6M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
+        <button class="fab" onclick="locateUser()"><span class="fab-tip">Locate Me</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M1 12h2M21 12h2M19.78 19.78l-1.41-1.41M5.64 5.64L4.22 4.22M19.78 4.22l-1.41 1.41M5.64 18.36L4.22 19.78"/></svg></button>
+        <button class="fab accent" onclick="openGrievModal()"><span class="fab-tip">Grievance</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
+        <button class="fab" id="fab-layers" onclick="toggleLP()" style="display:none"><span class="fab-tip">Layers</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail panel -->
+  <div class="detail" id="detail">
+    <div class="detail-close">
+      <div><div class="detail-eye" id="det-eye">—</div></div>
+      <button onclick="closeDetail()" aria-label="Close">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="det-content"></div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: CORPORATORS ═══════════ -->
+<div class="page" id="page-corp">
+  <div class="dir">
+    <div class="dir-head">
+      <div>
+        <div class="dir-title">Corporators <span class="acc">·</span> <span style="font-size:22px;color:var(--muted)">165 elected · 2026</span></div>
+        <div class="dir-sub">PMC Prabhags · 2026 Local Body Election Results</div>
+      </div>
+      <div class="dir-controls">
+        <div class="dir-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="corp-q" placeholder="Name, ward, party…" oninput="renderCorps()">
+        </div>
+        <select class="dir-sel" id="corp-party" onchange="renderCorps()">
+          <option value="">All Parties</option>
+          <option value="BJP">BJP</option><option value="NCP">NCP (Ajit)</option>
+          <option value="NCP-SP">NCP (SP)</option><option value="INC">INC</option>
+          <option value="SS-UBT">SS (UBT)</option><option value="SS-SH">SS (Shinde)</option>
+          <option value="MNS">MNS</option><option value="IND">Independent</option>
+        </select>
+        <select class="dir-sel" id="corp-ward" onchange="renderCorps()">
+          <option value="">All Wards</option>
+        </select>
+        <div class="dir-count" id="corp-count">—</div>
+      </div>
+    </div>
+    <div class="cards" id="corp-cards"></div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: MLAs ═══════════ -->
+<div class="page" id="page-mla">
+  <div class="dir">
+    <div class="dir-head">
+      <div>
+        <div class="dir-title">MLAs <span class="acc">·</span> <span style="font-size:22px;color:var(--muted)">Pune District · 21</span></div>
+        <div class="dir-sub">15th Maharashtra Vidhan Sabha · Nov 2024</div>
+      </div>
+      <div class="dir-controls">
+        <div class="dir-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="mla-q" placeholder="Name, constituency, party…" oninput="renderMLAs()">
+        </div>
+        <select class="dir-sel" id="mla-party" onchange="renderMLAs()">
+          <option value="">All Parties</option>
+          <option value="BJP">BJP</option><option value="NCP">NCP (Ajit)</option>
+          <option value="NCP-SP">NCP (SP)</option><option value="INC">INC</option>
+          <option value="SS-UBT">SS (UBT)</option><option value="SS-SH">SS (Shinde)</option><option value="IND">IND</option>
+        </select>
+        <select class="dir-sel" id="mla-ls" onchange="renderMLAs()">
+          <option value="">All LS</option>
+          <option value="Pune">Pune</option><option value="Baramati">Baramati</option>
+          <option value="Shirur">Shirur</option><option value="Maval">Maval</option>
+        </select>
+        <div class="dir-count" id="mla-count">—</div>
+      </div>
+    </div>
+    <div class="cards" id="mla-cards"></div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: MPs ═══════════ -->
+<div class="page" id="page-mp">
+  <div class="dir">
+    <div class="dir-head">
+      <div>
+        <div class="dir-title">MPs <span class="acc">·</span> <span style="font-size:22px;color:var(--muted)">Lok Sabha · 4</span></div>
+        <div class="dir-sub">18th Lok Sabha · 2024 General Election</div>
+      </div>
+      <div class="dir-controls">
+        <div class="dir-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="mp-q" placeholder="Name, constituency…" oninput="renderMPs()">
+        </div>
+        <div class="dir-count" id="mp-count">—</div>
+      </div>
+    </div>
+    <div class="cards" id="mp-cards"></div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: 4 PILLARS ═══════════ -->
+<div class="page" id="page-pillars">
+  <div class="dir">
+    <div class="dir-head">
+      <div>
+        <div class="dir-title">4 Pillars <span class="acc">·</span> <span style="font-size:22px;color:var(--muted)">Democracy in Action</span></div>
+        <div class="dir-sub">Legislature · Media · Judiciary / RTI · Administration</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-bottom:20px">
+      <div style="background:linear-gradient(135deg,rgba(255,122,26,.08),rgba(255,122,26,.02));border:1px solid rgba(255,122,26,.3);border-radius:10px;padding:18px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1.5px;color:var(--saffron);margin-bottom:6px">🏛 Legislature</div>
+        <p style="font-size:12.5px;color:var(--text2);line-height:1.6">165 Corporators · 21 MLAs · 4 MPs — all covered in the Map, Corporators, MLAs & MPs tabs above. Click any ward to see your representatives and file a targeted grievance.</p>
+        <button onclick="goPage('home')" style="margin-top:10px;padding:7px 14px;background:rgba(255,122,26,.16);border:1px solid rgba(255,122,26,.4);border-radius:5px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--saffron);cursor:pointer;">Open Map →</button>
+      </div>
+      <div style="background:linear-gradient(135deg,rgba(79,124,255,.08),rgba(79,124,255,.02));border:1px solid rgba(79,124,255,.3);border-radius:10px;padding:18px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1.5px;color:var(--indigo);margin-bottom:6px">📰 Media (II Pillar)</div>
+        <p style="font-size:12.5px;color:var(--text2);line-height:1.6">Local journalists, civic-beat reporters, and credible Pune media tracking accountability, corruption, and public services.</p>
+        <div style="margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--muted);letter-spacing:1.5px">↓ Scroll to Media section below</div>
+      </div>
+      <div style="background:linear-gradient(135deg,rgba(168,85,247,.08),rgba(168,85,247,.02));border:1px solid rgba(168,85,247,.3);border-radius:10px;padding:18px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1.5px;color:var(--purple);margin-bottom:6px">⚖️ Judiciary / RTI (III)</div>
+        <p style="font-size:12.5px;color:var(--text2);line-height:1.6">RTI activists, lawyers fighting public interest causes, district court locations, and consumer forums — your legal allies.</p>
+        <button onclick="goPage('rti')" style="margin-top:10px;padding:7px 14px;background:rgba(168,85,247,.16);border:1px solid rgba(168,85,247,.4);border-radius:5px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--purple);cursor:pointer;">RTI Guide →</button>
+      </div>
+      <div style="background:linear-gradient(135deg,rgba(0,229,160,.08),rgba(0,229,160,.02));border:1px solid rgba(0,229,160,.3);border-radius:10px;padding:18px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1.5px;color:var(--mint);margin-bottom:6px">⚙️ Administration (IV)</div>
+        <p style="font-size:12.5px;color:var(--text2);line-height:1.6">PMC Commissioner, Police Commissioner, Chief Engineers for PWD, Water, MSEDCL, Sewage. Know who is really in charge of your services.</p>
+        <div style="margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--muted);letter-spacing:1.5px">↓ Scroll to Administration section below</div>
+      </div>
+    </div>
+
+    <!-- II: MEDIA -->
+    <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;color:var(--indigo)">📰 II · Media & Journalists</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:4px">Civic-beat reporters · Pune media covering local governance</div>
+    </div>
+    <div class="pillars-grid" style="--p-accent:var(--indigo)">
+      <div class="pillar-card" style="--p-accent:var(--indigo)">
+        <h3><span class="pnum">01</span>Print & Digital Newsrooms</h3>
+        <ul>
+          <li><div class="li-dot"></div><div><strong>Sakal Times / Sakal</strong> — Pune's largest Marathi daily. Civic accountability, PMC beat.<br><a href="https://www.sakaaltimes.com" target="_blank" rel="noopener">sakaaltimes.com</a></div></li>
+          <li><div class="li-dot"></div><div><strong>Pune Mirror</strong> — English, city affairs, political reporting.<br><a href="https://punemirror.com" target="_blank" rel="noopener">punemirror.com</a></div></li>
+          <li><div class="li-dot"></div><div><strong>Maharashtra Times</strong> — TOI group, Marathi, PMC and state politics.<br><a href="https://maharashtratimes.com" target="_blank" rel="noopener">maharashtratimes.com</a></div></li>
+          <li><div class="li-dot"></div><div><strong>Pune365</strong> — Hyperlocal digital. Civic infrastructure watchdog.<br><a href="https://pune365.com" target="_blank" rel="noopener">pune365.com</a></div></li>
+          <li><div class="li-dot"></div><div><strong>The Indian Express Pune</strong> — Investigative, RTI disclosures coverage.<br><a href="https://indianexpress.com/section/cities/pune/" target="_blank" rel="noopener">indianexpress.com/pune</a></div></li>
+        </ul>
+      </div>
+      <div class="pillar-card" style="--p-accent:var(--indigo)">
+        <h3><span class="pnum">02</span>Instagram / Social Civic Pages</h3>
+        <ul>
+          <li><div class="li-dot"></div><div><strong>@PunePulse</strong> — Real-time civic updates, pothole mapping, event coverage.<br><a href="https://instagram.com/punepulse" target="_blank" rel="noopener">@punepulse</a></div></li>
+          <li><div class="li-dot"></div><div><strong>@PuneMirror</strong> — Instagram of Pune Mirror print edition.<br><a href="https://instagram.com/punemirror" target="_blank" rel="noopener">@punemirror</a></div></li>
+          <li><div class="li-dot"></div><div><strong>@PMCPune</strong> — Official PMC account (follow for updates).<br><a href="https://instagram.com/pmc_pune_official" target="_blank" rel="noopener">@pmc_pune_official</a></div></li>
+          <li><div class="li-dot"></div><div><strong>@CityofPune</strong> — Citizen-run civic accountability account.<br><a href="https://instagram.com/cityofpune" target="_blank" rel="noopener">@cityofpune</a></div></li>
+          <li><div class="li-dot"></div><div><strong>@PuneTrafficPolice</strong> — Updates on road closures, signal timing.<br><a href="https://twitter.com/PuneTrafficPol" target="_blank" rel="noopener">Twitter/X</a></div></li>
+        </ul>
+      </div>
+      <div class="pillar-card" style="--p-accent:var(--indigo)">
+        <h3><span class="pnum">03</span>Civic-Beat Journalists (Pune)</h3>
+        <ul>
+          <li><div class="li-dot"></div><div><strong>Atikh Rashid</strong> — Indian Express. Water, urban planning, RTI-based reporting.</div></li>
+          <li><div class="li-dot"></div><div><strong>Shirish Thorat</strong> — Sakal. PMC budget, corporator accountability, heritage.</div></li>
+          <li><div class="li-dot"></div><div><strong>Mahendra Kolhe</strong> — Maharashtra Times. MSEDCL, infrastructure, urban flooding.</div></li>
+          <li><div class="li-dot"></div><div><strong>Dhairyashil Patil</strong> — Pune Mirror. Crime, women's safety, encroachments.</div></li>
+          <li><div class="li-dot"></div><div><strong>How to reach them:</strong> Tag @IndiaPressClub or @PCI_India with your grievance evidence. Use the "email grievance" feature above — copy to journalists.</div></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- III: ADMINISTRATION -->
+    <div style="margin-top:32px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;color:var(--mint)">⚙️ IV · Administration</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:4px">Top officials accountable for civic services — use RTI, call them out</div>
+    </div>
+    <div class="pillars-grid" style="--p-accent:var(--mint)">
+      <div class="pillar-card" style="--p-accent:var(--mint)">
+        <h3><span class="pnum">01</span>PMC Top Administration</h3>
+        <ul>
+          <li><div class="li-dot"></div><div><strong>Municipal Commissioner, PMC</strong><br>IAS Officer, Pune Municipal Corporation<br><span class="contact-chip"><a href="tel:02025501000">☎ 020-25501000</a></span> <span class="contact-chip"><a href="mailto:commissioner@punecorporation.org">✉ Email</a></span></div></li>
+          <li><div class="li-dot"></div><div><strong>Additional Commissioner (Estate)</strong> — Land/property disputes<br><span class="contact-chip"><a href="tel:02025501001">☎ 020-25501001</a></span></div></li>
+          <li><div class="li-dot"></div><div><strong>Chief Engineer (Roads & Traffic)</strong> — Potholes, road development<br><span class="contact-chip"><a href="tel:02025501050">☎ 020-25501050</a></span></div></li>
+          <li><div class="li-dot"></div><div><strong>Chief Engineer (Water Supply)</strong> — Water supply, pipelines<br><span class="contact-chip"><a href="tel:02025501060">☎ 020-25501060</a></span></div></li>
+          <li><div class="li-dot"></div><div><strong>Chief Engineer (Sewage)</strong> — Drainage, waterlogging, sewage<br><span class="contact-chip"><a href="tel:02025501070">☎ 020-25501070</a></span></div></li>
+          <li><div class="li-dot"></div><div><strong>Solid Waste Management</strong> — Garbage collection, cleanliness<br><span class="contact-chip"><a href="tel:02025501080">☎ 020-25501080</a></span></div></li>
+        </ul>
+      </div>
+      <div class="pillar-card" style="--p-accent:var(--mint)">
+        <h3><span class="pnum">02</span>Police — Women's Safety & Encroachment</h3>
+        <ul>
+          <li><div class="li-dot"></div><div><strong>Police Commissioner, Pune</strong><br>Commissionerate, Shivajinagar<br><span class="contact-chip"><a href="tel:02026123461">☎ 020-26123461</a></span> <span class="contact-chip"><a href="mailto:cp.pune@mahapolice.gov.in">✉ Email</a></span></div></li>
+          <li><div class="li-dot"></div><div><strong>Dy CP (Crime against Women)</strong><br><span class="contact-chip"><a href="tel:02026126262">☎ 020-26126262</a></span></div></li>
+          <li><div class="li-dot"></div><div><strong>Nirbhaya Squad</strong> — Women's safety patrol<br><span class="contact-chip"><a href="tel:8600100100">☎ 8600100100</a></span></div></li>
+          <li><div class="li-dot"></div><div><strong>Cyber Crime Cell</strong> — Online harassment, fraud<br><span class="contact-chip"><a href="tel:02027215200">☎ 020-27215200</a></span></div></li>
+          <li><div class="li-dot"></div><div><strong>Encroachment Removal Cell</strong><br><span class="contact-chip"><a href="tel:02025501100">☎ 020-25501100</a></span></div></li>
+        </ul>
+        <div style="margin-top:10px;background:rgba(255,59,85,.08);border:1px solid rgba(255,59,85,.25);border-radius:6px;padding:10px;font-size:11.5px;color:var(--text2);line-height:1.55">
+          <strong style="color:var(--red)">Nearest Police Station:</strong> Use the <strong>Locate Me</strong> button on the map — it will show your ward and the nearest police station auto-detected from your GPS location.
+        </div>
+      </div>
+      <div class="pillar-card" style="--p-accent:var(--mint)">
+        <h3><span class="pnum">03</span>State & Utility Officials</h3>
+        <ul>
+          <li><div class="li-dot"></div><div><strong>District Collector, Pune</strong> — Revenue, land, disaster<br><span class="contact-chip"><a href="tel:02026123325">☎ 020-26123325</a></span></div></li>
+          <li><div class="li-dot"></div><div><strong>MSEDCL (Electricity) — Pune</strong> — Power cuts, billing<br><span class="contact-chip"><a href="tel:18002100230">☎ 1800-210-0230</a></span> <span class="contact-chip"><a href="https://msedcl.com" target="_blank">msedcl.com</a></span></div></li>
+          <li><div class="li-dot"></div><div><strong>PWD (Public Works Dept)</strong> — State roads, bridges<br><span class="contact-chip"><a href="tel:02026126300">☎ 020-26126300</a></span></div></li>
+          <li><div class="li-dot"></div><div><strong>Maharashtra Pollution Control Board</strong><br><span class="contact-chip"><a href="tel:02027214481">☎ 020-27214481</a></span></div></li>
+          <li><div class="li-dot"></div><div><strong>Aaple Sarkar Grievance Portal</strong><br><span class="contact-chip"><a href="https://aaplesarkar.mahaonline.gov.in" target="_blank">Submit Online</a></span></div></li>
+        </ul>
+      </div>
+      <div class="pillar-card" style="--p-accent:var(--mint)">
+        <h3><span class="pnum">04</span>Emergency Numbers — Pune</h3>
+        <ul>
+          <li><div class="li-dot"></div><div><strong>Police / Emergency</strong><br><span style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--red);letter-spacing:2px">100</span></div></li>
+          <li><div class="li-dot"></div><div><strong>Women's Helpline</strong><br><span style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--red);letter-spacing:2px">1091</span></div></li>
+          <li><div class="li-dot"></div><div><strong>Emergency All-in-one</strong><br><span style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--red);letter-spacing:2px">112</span></div></li>
+          <li><div class="li-dot"></div><div><strong>Pune Police WhatsApp</strong><br><span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--red);letter-spacing:1px">8975 953 100</span></div></li>
+          <li><div class="li-dot"></div><div><strong>PMC Sarathi Helpline</strong><br><span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mint);letter-spacing:1px">020-2550 1000</span></div></li>
+          <li><div class="li-dot"></div><div><strong>Child Helpline</strong><br><span style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--saffron);letter-spacing:2px">1098</span></div></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- RTI Activists / Lawyers / Courts -->
+    <div style="margin-top:32px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;color:var(--purple)">⚖️ III · RTI Activists & Courts</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:4px">Your legal allies — Courts, RTI warriors, and public-interest lawyers</div>
+    </div>
+    <div class="pillars-grid" style="--p-accent:var(--purple)">
+      <div class="pillar-card" style="--p-accent:var(--purple)">
+        <h3><span class="pnum">01</span>Court Locations — Pune</h3>
+        <ul>
+          <li><div class="li-dot"></div><div><strong>District & Sessions Court, Pune</strong><br>Shivajinagar, Pune 411005<br><span class="contact-chip"><a href="tel:02025510000">☎ 020-25510000</a></span> <span class="contact-chip"><a href="https://districts.ecourts.gov.in/pune" target="_blank">e-Courts Portal</a></span></div></li>
+          <li><div class="li-dot"></div><div><strong>Bombay High Court (Nagpur Bench)</strong><br>For PILs — consult a High Court advocate first.<br><span class="contact-chip"><a href="https://bombayhighcourt.nic.in" target="_blank">bombayhighcourt.nic.in</a></span></div></li>
+          <li><div class="li-dot"></div><div><strong>Lok Adalat — Pune DLSA</strong><br>District Legal Services Authority — free legal aid<br><span class="contact-chip"><a href="tel:02025510100">☎ 020-25510100</a></span></div></li>
+          <li><div class="li-dot"></div><div><strong>Consumer Forum, Pune</strong><br>District Consumer Disputes Redressal Commission<br>Survey No. 24, Baner Road, Pune<br><span class="contact-chip"><a href="tel:02025287120">☎ 020-25287120</a></span></div></li>
+          <li><div class="li-dot"></div><div><strong>State Information Commission (SIC)</strong><br>RTI Appeals — 2nd Appeal body<br><span class="contact-chip"><a href="https://sic.maharashtra.gov.in" target="_blank">sic.maharashtra.gov.in</a></span></div></li>
+        </ul>
+      </div>
+      <div class="pillar-card" style="--p-accent:var(--purple)">
+        <h3><span class="pnum">02</span>RTI Activists — Pune</h3>
+        <ul>
+          <li><div class="li-dot"></div><div><strong>Vijay Kumbhar</strong> — Prominent RTI activist, PMC accountability. Files RTI on roads, water, property.<br><em style="font-size:11px;color:var(--muted)">Contact via local journalist or Sakal newspaper</em></div></li>
+          <li><div class="li-dot"></div><div><strong>Satish Khot</strong> — RTI Foundation, civic governance & land records.<br><em style="font-size:11px;color:var(--muted)">RTI Foundation of India, Pune chapter</em></div></li>
+          <li><div class="li-dot"></div><div><strong>Praful Sarda</strong> — Parivartan NGO. Urban poor rights, slum regularisation RTI.<br><em style="font-size:11px;color:var(--muted)">parivartan.org.in</em></div></li>
+          <li><div class="li-dot"></div><div><strong>File yourself (recommended):</strong><br><span class="contact-chip"><a href="https://rtionline.maharashtra.gov.in" target="_blank">Maharashtra RTI Online</a></span> — ₹10 fee, 30 day reply.</div></li>
+        </ul>
+      </div>
+      <div class="pillar-card" style="--p-accent:var(--purple)">
+        <h3><span class="pnum">03</span>Free Legal Aid — Pune</h3>
+        <ul>
+          <li><div class="li-dot"></div><div><strong>District Legal Services Authority (DLSA)</strong><br>Free legal aid to BPL, women, SC/ST, disabled<br><span class="contact-chip"><a href="tel:02025510100">☎ 020-25510100</a></span></div></li>
+          <li><div class="li-dot"></div><div><strong>Maharashtra Legal Services Authority</strong><br><span class="contact-chip"><a href="https://mahalsa.com" target="_blank">mahalsa.com</a></span></div></li>
+          <li><div class="li-dot"></div><div><strong>NALSA Helpline</strong> — National Legal Aid<br><span class="contact-chip">☎ 15100</span></div></li>
+          <li><div class="li-dot"></div><div><strong>Pune Bar Association PIL Cell</strong><br>For urgent civic PILs, encroachment, demolition stays<br>Shivajinagar Court Complex, Pune</div></li>
+          <li><div class="li-dot"></div><div><strong>Women's Legal Cell — SNDT</strong><br>SNDT Women's University Legal Aid Cell<br><span class="contact-chip"><a href="tel:02025563500">☎ 020-25563500</a></span></div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: RTI ═══════════ -->
+<div class="page" id="page-rti">
+  <div class="dir">
+    <div class="dir-head">
+      <div>
+        <div class="dir-title">RTI Guide <span class="acc">·</span> <span style="font-size:22px;color:var(--muted)">Your Weapon</span></div>
+        <div class="dir-sub">Right to Information Act, 2005 · Article 19(1)(a) · Use it fearlessly</div>
+      </div>
+    </div>
+    <div style="background:linear-gradient(180deg,var(--card),var(--surface));border:1px solid rgba(255,122,26,.3);border-radius:10px;padding:22px;margin-bottom:18px;border-left:3px solid var(--saffron)">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--saffron);letter-spacing:2px;text-transform:uppercase;margin-bottom:7px">Supreme Court of India</div>
+      <p style="font-family:'Fraunces',serif;font-size:17px;font-style:italic;color:var(--text);line-height:1.5">"Right to Information is implicit in the right to freedom of speech and expression guaranteed under Article 19(1)(a)."</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+      <div class="info-box highlight"><h3><span class="num">01</span>What to ask</h3><p>Any information held by a public authority — PMC records, contracts, meeting minutes, inspection reports, maps, bills, employee data. Ask for copies, inspections, or certified records.</p></div>
+      <div class="info-box"><h3><span class="num">02</span>Cost</h3><p>₹10 application fee. BPL: FREE. Photocopy: ₹2/page. Pay via IPO, demand draft, or court fee stamp. Online: credit/debit card.</p></div>
+      <div class="info-box"><h3><span class="num">03</span>Timeline</h3><p><strong>30 days</strong> standard reply. <strong>48 hours</strong> for life/liberty. First appeal: 30 days. Second appeal to State Information Commission: 90 days.</p></div>
+      <div class="info-box danger"><h3><span class="num">04</span>PIO Penalty</h3><p>₹250/day fine (max ₹25,000) if PIO delays without cause. Disciplinary action possible. <strong>Cite this</strong> in your application — it works.</p></div>
+      <div class="info-box"><h3><span class="num">05</span>File online</h3><p>Maharashtra: <a class="ilink" href="https://rtionline.maharashtra.gov.in" target="_blank" rel="noopener">rtionline.maharashtra.gov.in</a><br>Central: <a class="ilink" href="https://rtionline.gov.in" target="_blank" rel="noopener">rtionline.gov.in</a><br>PMC: <a class="ilink" href="https://pmc.gov.in" target="_blank" rel="noopener">pmc.gov.in</a></p></div>
+      <div class="info-box success"><h3><span class="num">06</span>Template tips</h3><p>Be specific. Number your questions. Request inspection (free). Cite Section 4 (proactive disclosure). Keep acknowledged copy always.</p></div>
+      <div style="background:linear-gradient(135deg,rgba(255,59,85,.06),var(--surface));border:1px solid rgba(255,59,85,.25);border-radius:10px;padding:18px;grid-column:1/-1">
+        <h3 style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1.5px;color:var(--red);margin-bottom:12px">Women's Safety Emergency Lines</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px">
+          <div><div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase">Women's Helpline</div><div class="helpline-num">1091</div></div>
+          <div><div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase">Emergency</div><div class="helpline-num">112</div></div>
+          <div><div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase">Pune WhatsApp</div><div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--red);letter-spacing:1.5px">8975 953 100</div></div>
+          <div><div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase">Child Helpline</div><div class="helpline-num">1098</div></div>
+          <div><div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase">Cyber Crime</div><div class="helpline-num" style="font-size:20px">1930</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: GRIEVANCES ═══════════ -->
+<div class="page" id="page-grievance">
+  <div class="dir">
+    <div class="dir-head">
+      <div>
+        <div class="dir-title">Grievances <span class="acc">·</span> <span style="font-size:22px;color:var(--muted)">Citizen Dissent</span></div>
+        <div class="dir-sub">File geotagged complaints · Email authorities · Track accountability</div>
+      </div>
+      <div class="dir-controls">
+        <button class="btn btn-pri" onclick="openGrievModal()">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New Grievance
+        </button>
+        <button class="btn btn-sec" onclick="exportGrievances()">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export JSON
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabs: My / Public -->
+    <div style="display:flex;gap:0;background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:7px;padding:3px;margin-bottom:18px;width:fit-content">
+      <button id="gtab-my" onclick="switchGTab('my')" class="tn-tab active" style="border-radius:4px">My Grievances</button>
+      <button id="gtab-pub" onclick="switchGTab('pub')" class="tn-tab" style="border-radius:4px">
+        Public Feed 
+        <span style="font-size:9px;color:var(--mint);font-family:'IBM Plex Mono',monospace;margin-left:4px">(📍 Geotagged only)</span>
+      </button>
+    </div>
+
+    <div class="footer-disclaim" style="margin-bottom:18px">
+      <strong>My Grievances:</strong> Stored locally in your browser only — nothing uploaded. <strong>Public Feed:</strong> Shows grievances with geotagged photos shared publicly by users in this session (demo mode — a real backend would persist cross-device). Use <strong>email links</strong> to send complaints directly to PMC/authorities.
+    </div>
+
+    <div id="griev-my" class="griev-feed"></div>
+    <div id="griev-pub" class="griev-feed" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ═══════════ GRIEVANCE MODAL ═══════════ -->
+<div class="modal-overlay" id="griev-modal" onclick="if(event.target===this)closeGrievModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-eye">CITIZEN DISSENT · FILE A COMPLAINT</div>
+        <div class="modal-title">Submit <span class="acc">Grievance</span></div>
+      </div>
+      <button class="modal-x" onclick="closeGrievModal()" aria-label="Close">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <label for="g-cat">Issue Category</label>
+      <select id="g-cat" onchange="buildEmailDraft()">
+        <option value="Roads & Potholes">🛣 Roads & Potholes / खड्डे</option>
+        <option value="Water Supply">💧 Water Supply / पाणी पुरवठा</option>
+        <option value="Sewage & Waterlogging">🚰 Sewage & Waterlogging / सांडपाणी</option>
+        <option value="Garbage & Sanitation">🗑 Garbage & Sanitation / कचरा</option>
+        <option value="Streetlights">💡 Streetlights / पथदीप</option>
+        <option value="Encroachment">🚫 Encroachment / अतिक्रमण</option>
+        <option value="Women's Safety">👩 Women's Safety / महिला सुरक्षा</option>
+        <option value="Electricity / MSEDCL">⚡ Electricity / MSEDCL</option>
+        <option value="Traffic & Signals">🚦 Traffic & Signals</option>
+        <option value="Construction without permit">🏗 Illegal Construction</option>
+        <option value="Corruption">💰 Corruption / भ्रष्टाचार</option>
+        <option value="Stray Animals">🐕 Stray Animals</option>
+        <option value="Other">📌 Other / अन्य</option>
+      </select>
+
+      <label for="g-desc">Describe the issue <span style="color:var(--muted);font-size:9px">(be specific — location, duration, severity)</span></label>
+      <textarea id="g-desc" placeholder="Example: There is a burst sewage pipeline at the corner of FC Road and Bhandarkar Road for the past 3 days. Sewage is overflowing onto the footpath creating health hazard…" oninput="buildEmailDraft()"></textarea>
+
+      <label>📷 Photo Evidence + Geotag</label>
+      <div class="photo-zone" id="photo-zone" onclick="document.getElementById('g-photo').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <div class="photo-zone-txt">Tap to capture / upload photo</div>
+        <div class="photo-zone-hint">📸 Camera opens on mobile · Auto-geotag if location allowed</div>
+        <input type="file" id="g-photo" accept="image/*" capture="environment" onchange="handlePhoto(event)">
+      </div>
+      <div class="photo-prev" id="photo-prev">
+        <img id="photo-img" alt="Evidence preview">
+        <button class="ph-rm" onclick="removePhoto()" type="button">×</button>
+      </div>
+      <div class="geotag-meta" id="geotag-meta">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span id="geotag-txt">Geotagging…</span>
+      </div>
+
+      <label for="g-loc">Your Location</label>
+      <input type="text" id="g-loc" placeholder="Auto-filled · or type address…">
+
+      <label for="g-rep">Tag Representative (optional)</label>
+      <select id="g-rep" onchange="buildEmailDraft()">
+        <option value="">— Auto-detect from ward —</option>
+      </select>
+
+      <!-- Auto-generated email -->
+      <div style="margin-top:14px;padding:10px 12px;background:rgba(79,124,255,.08);border:1px solid rgba(79,124,255,.25);border-radius:6px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--indigo);letter-spacing:1.5px;text-transform:uppercase">✉ Auto-Generated Email Draft</div>
+          <button onclick="toggleEmailPreview()" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px" id="email-toggle-btn">SHOW</button>
+        </div>
+        <div class="email-preview" id="email-preview"></div>
+        <div class="email-actions" id="email-actions" style="display:none">
+          <button class="email-link" onclick="copyEmailText()">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy Text
+          </button>
+          <button class="email-link primary" onclick="openEmailClient('corp')">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Email Corporator
+          </button>
+          <button class="email-link" onclick="openEmailClient('admin')">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Email PMC Admin
+          </button>
+          <button class="email-link" onclick="openEmailClient('mla')">Email MLA</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;align-items:center;gap:8px">
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin-top:0">
+          <input type="checkbox" id="g-public" style="width:16px;height:16px;accent-color:var(--saffron)">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--text2);letter-spacing:.5px;text-transform:none">Share to Public Feed (only if photo + geotag present)</span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sec" onclick="closeGrievModal()">Cancel</button>
+      <button class="btn btn-pri" onclick="submitGrievance()">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Log Grievance
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-disclaim">
+      <strong>Civic Disclaimer:</strong> Nagrik OS uses <em>official 2026 PMC election data</em> and 2024 Vidhan/Lok Sabha results. Sub-ward (A/B/C/D) boundaries are <strong>computed angular wedges</strong> from ward centroids — PMC does not publish official panel-level GeoJSON. Rural MLA polygons are Voronoi approximations; city MLA polygons are accurate by ward aggregation. Contact data is accurate to the best of our verification — <strong>always confirm before acting legally.</strong>
+    </div>
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <svg viewBox="0 0 40 44" xmlns="http://www.w3.org/2000/svg" style="width:36px;height:40px;flex-shrink:0" aria-hidden="true">
+            <defs><linearGradient id="ng-bg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0d1528"/><stop offset="100%" stop-color="#1a2a4a"/></linearGradient></defs>
+            <path d="M20 2 L36 11 L36 33 L20 42 L4 33 L4 11 Z" fill="url(#ng-bg2)"/>
+            <path d="M20 2 L36 11 L36 22" stroke="#ff7a1a" stroke-width="2" fill="none"/>
+            <path d="M36 22 L36 33 L28 38" stroke="#ffffff" stroke-width="2" fill="none"/>
+            <path d="M28 38 L20 42 L4 33 L4 11 L20 2" stroke="#138808" stroke-width="2" fill="none"/>
+            <circle cx="20" cy="13" r="4" fill="none" stroke="#4f7cff" stroke-width="1"/>
+            <circle cx="20" cy="13" r="1.5" fill="#4f7cff"/>
+            <path d="M13 40 L13 22 L20 32 L27 22 L27 40" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <h2>NAGRIK OS</h2>
+        </div>
+        <p>Built for every citizen of Pune — and eventually, every city in India. Democracy needs eyes. <strong style="color:var(--saffron3);font-style:normal">You are those eyes.</strong></p>
+        <div style="margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase">
+          © 2026 Krishant Dutta · All Rights Reserved<br>
+          <span style="color:var(--saffron3);margin-top:4px;display:block">सत्यमेव जयते</span>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Navigate</h4>
+        <ul>
+          <li><a href="#" onclick="goPage('home');return false">Map View</a></li>
+          <li><a href="#" onclick="goPage('corp');return false">Corporators</a></li>
+          <li><a href="#" onclick="goPage('mla');return false">MLAs</a></li>
+          <li><a href="#" onclick="goPage('mp');return false">MPs</a></li>
+          <li><a href="#" onclick="goPage('pillars');return false">4 Pillars</a></li>
+          <li><a href="#" onclick="goPage('rti');return false">RTI Guide</a></li>
+          <li><a href="#" onclick="goPage('grievance');return false">Grievances</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Official Portals</h4>
+        <ul>
+          <li><a href="https://pmc.gov.in" target="_blank" rel="noopener">PMC Pune</a></li>
+          <li><a href="https://aaplesarkar.mahaonline.gov.in" target="_blank" rel="noopener">Aaple Sarkar</a></li>
+          <li><a href="https://rtionline.maharashtra.gov.in" target="_blank" rel="noopener">RTI Maharashtra</a></li>
+          <li><a href="https://eci.gov.in" target="_blank" rel="noopener">Election Commission</a></li>
+          <li><a href="https://pgportal.gov.in" target="_blank" rel="noopener">PM Grievance Portal</a></li>
+          <li><a href="https://punepolice.gov.in" target="_blank" rel="noopener">Pune Police</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Helplines</h4>
+        <p>Emergency<span class="hl">112</span></p>
+        <p style="margin-top:10px">Women's Safety<span class="hl">1091</span></p>
+        <p style="margin-top:10px">PMC Sarathi<span class="hl">020-2550 1000</span></p>
+        <p style="margin-top:10px">Cyber Crime<span class="hl">1930</span></p>
+        <p style="margin-top:10px">Child Helpline<span class="hl">1098</span></p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>© 2026 Krishant Dutta · NAGRIK OS · Open Civic Data · Non-Partisan</div>
+      <div class="right">
+        <span>BUILD v3.0 · 2026 DATA</span>
+        <span>ECI 2024 · PMC 2026 · MahaSEC</span>
+        <span style="color:var(--saffron3)">सत्यमेव जयते</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mobile-nav" role="navigation" aria-label="Main navigation">
+  <button class="mob-tab active" data-page="home" onclick="goPage('home')" aria-label="Map view">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>
+    Map
+  </button>
+  <button class="mob-tab" data-page="corp" onclick="goPage('corp')" aria-label="Corporators">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="3"/><path d="M2 20v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/><polyline points="17 11 19 13 23 9"/></svg>
+    Corps
+  </button>
+  <button class="mob-tab" data-page="mla" onclick="goPage('mla')" aria-label="MLAs">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z"/></svg>
+    MLAs
+  </button>
+  <button class="mob-tab" data-page="pillars" onclick="goPage('pillars')" aria-label="4 Pillars">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l-8 4v2h16V7l-8-4z"/><path d="M4 9v11M8 9v11M12 9v11M16 9v11M20 9v11M2 20h20"/></svg>
+    Admin
+  </button>
+  <button class="mob-tab" data-page="grievance" onclick="goPage('grievance')" aria-label="Grievances">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Grieve
+    <span class="mob-badge" id="mob-griev-badge" style="display:none">0</span>
+  </button>
+</nav>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="nagrik.js"></script>
+</body>
+</html>
