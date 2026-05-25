@@ -30,8 +30,8 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc:  ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-      styleSrc:   ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'],
+      scriptSrc:  ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://unpkg.com', 'https://tile.openstreetmap.org'],
+  styleSrc:   ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://fonts.gstatic.com', 'https://unpkg.com', 'https://tile.openstreetmap.org'],
       fontSrc:    ["'self'", 'https://fonts.gstatic.com'],
       connectSrc: ["'self'", 'https://api.resend.com', 'https://www.fast2sms.com'],
       imgSrc:     ["'self'", 'data:', 'https://res.cloudinary.com'],
