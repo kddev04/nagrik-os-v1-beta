@@ -408,15 +408,34 @@ function openWardDetailByNo(wno){
 }
 
 // ────────────────── STAR RATINGS ──────────────────
-const RATING_KEY='nagrik_ratings_v3';
-function getRating(wno){try{const r=JSON.parse(localStorage.getItem(RATING_KEY)||'{}');return r[wno]||null}catch{return null}}
-function setRating(wno,sat,saf){
+const RATING_KEY=`nagrik_ratings_${CITY_CONFIG.id}_v3`;
+
+async function getRating(wno){
   try{
-    const r=JSON.parse(localStorage.getItem(RATING_KEY)||'{}');
-    r[wno]={sat,saf,ts:new Date().toISOString()};
-    localStorage.setItem(RATING_KEY,JSON.stringify(r));
-  }catch(e){}
+    const jwt = getJWT();
+    if(!jwt) return null;
+    const res = await fetch(`${BACKEND_URL}/api/ratings/ward/${wno}?cityId=${CITY_CONFIG.id}`, { headers: authHeaders() });
+    if(!res.ok) return null;
+    const data = await res.json();
+    return data.yourRating || null;
+  }catch(e){ console.warn('Get rating failed', e); return null; }
 }
+
+async function setRating(wno, sat, saf){
+  try{
+    const jwt = getJWT();
+    if(!jwt){ toast('Log in first','err'); return false; }
+    const res = await fetch(`${BACKEND_URL}/api/ratings`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ cityId: CITY_CONFIG.id, wardId: wno, satisfaction: sat, safety: saf })
+    });
+    if(!res.ok){ const err = await res.json(); toast(err.error || 'Failed','err'); return false; }
+    toast('Rating saved','success');
+    return true;
+  }catch(e){ console.error('Error', e); toast('Network error','err'); return false; }
+}
+
 function renderStarGroup(containerId,wno,type,current){
   const el=document.getElementById(containerId);
   if(!el) return;
