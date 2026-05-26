@@ -451,10 +451,10 @@ function renderStarGroup(containerId,wno,type,current){
     </svg>`;
   }).join('');
 }
-function handleStarClick(n,wno,type){
+async function handleStarClick(n,wno,type){
   const r=getRating(wno)||{sat:0,saf:0};
   if(type==='sat') r.sat=n; else r.saf=n;
-  setRating(wno,r.sat,r.saf);
+  await setRating(wno,r.sat,r.saf);
   updateLPRating(wno);
   toast(`${type==='sat'?'Satisfaction':'Safety'} rating saved: ${'★'.repeat(n)}`);
 }
