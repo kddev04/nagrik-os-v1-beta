@@ -1106,12 +1106,28 @@ async function renderMyGrievances(){
   feed.innerHTML=list.map(g=>grievCard(g,true)).join('');
 }
 
-function renderPublicFeed(){
-  const list=getGrievs().filter(g=>g.isPublic&&g.photo&&g.gps);
-  const feed=document.getElementById('griev-pub');
-  if(!feed) return;
-  if(!list.length){feed.innerHTML='<div class="griev-card empty">No public geotagged grievances yet. Submit one with photo + location permission and tick "Share to Public Feed".</div>';return}
-  feed.innerHTML=list.map(g=>grievCard(g,false)).join('');
+async function renderPublicFeed(){
+  try{
+    const res = await fetch(`${BACKEND_URL}/api/grievances/public?cityId=${CITY_CONFIG.id}`);
+    if(!res.ok){ 
+      const feed=document.getElementById('griev-pub');
+      if(feed) feed.innerHTML='<div class="griev-card empty">Failed to load public feed</div>';
+      return;
+    }
+    const data = await res.json();
+    const list = data.data || [];
+    const feed = document.getElementById('griev-pub');
+    if(!feed) return;
+    if(!list.length){
+      feed.innerHTML='<div class="griev-card empty">No public geotagged grievances yet. Submit one with photo + location and tick "Share to Public Feed".</div>';
+      return;
+    }
+    feed.innerHTML = list.map(g => grievCard(g, false)).join('');
+  }catch(e){
+    console.error('Render public feed error', e);
+    const feed = document.getElementById('griev-pub');
+    if(feed) feed.innerHTML='<div class="griev-card empty">Network error loading feed</div>';
+  }
 }
 
 function grievCard(g,isOwn){
