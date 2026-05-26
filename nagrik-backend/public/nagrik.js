@@ -1309,6 +1309,17 @@ function handleResize(){
 }
 
 function init(){
+  // ── AUTH CHECK ──
+  const jwt = localStorage.getItem('nagrik_jwt');
+  if(!jwt){
+    // Not logged in — redirect to auth page
+    localStorage.setItem('nagrik_auth_redirect', window.location.href);
+    window.location.href = `${BACKEND_URL}/login`;
+    return; // Stop execution
+  }
+  // User is logged in, continue loading app
+  
+  // ── REST OF INIT CODE BELOW ──
   // Restore saved mode
   try{
     const saved=localStorage.getItem('nagrik_mode');
