@@ -777,8 +777,33 @@ function renderMPs(){
 
 // ────────────────── GRIEVANCES ──────────────────
 const GK='nagrik_grievances_v3';
-function getGrievs(){try{return JSON.parse(localStorage.getItem(GK)||'[]')}catch{return[]}}
-function saveGrievs(a){try{localStorage.setItem(GK,JSON.stringify(a))}catch(e){toast('Storage full — delete old grievances','err')}}
+const BACKEND_URL='';
+
+const getJWT=()=>localStorage.getItem('nagrik_jwt');
+const authHeaders=()=>({'Content-Type':'application/json','Authorization':`Bearer ${getJWT()}`});
+
+async function getGrievs(){
+  try{
+    const jwt=getJWT();
+    if(!jwt)return[];
+    const res=await fetch(`${BACKEND_URL}/api/grievances/mine`,{headers:authHeaders()});
+    if(!res.ok)return[];
+    const data=await res.json();
+    return data.data||[];
+  }catch(e){console.warn('Fetch grievances failed',e);return[];}
+}
+
+async function saveGrievs(grievanceData){
+  try{
+    const jwt=getJWT();
+    if(!jwt){toast('Log in first','err');return false;}
+    const res=await fetch(`${BACKEND_URL}/api/grievances`,{method:'POST',headers:authHeaders(),body:JSON.stringify(grievanceData)});
+    if(!res.ok){const err=await res.json();toast(err.error||'Failed to submit','err');return false;}
+    const result=await res.json();
+    toast(`Filed: ${result.refCode}`,'success');
+    return true;
+  }catch(e){console.error('Save error',e);toast('Network error','err');return false;}
+}
 
 function openGrievModal(repType,repId,wardNo,jumpToEmail){
   repType=repType||''; repId=repId||''; wardNo=wardNo||'';
