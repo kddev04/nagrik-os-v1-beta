@@ -1031,7 +1031,7 @@ function removePhoto(){
 }
 
 // ────── SUBMIT ──────
-function submitGrievance(){
+async function submitGrievance(){
   const desc=(document.getElementById('g-desc')?.value||'').trim();
   if(!desc){toast('Please describe the grievance','err');return}
   const isPublic=document.getElementById('g-public')?.checked&&!!S.photoData&&!!S.photoGPS;
@@ -1047,7 +1047,9 @@ function submitGrievance(){
     isPublic,
     emailDraft:window.__emailDraft||null,
   };
-  const list=getGrievs();list.unshift(g);saveGrievs(list);
+const success = await saveGrievs(g);
+if(!success) return; // Exit if submission failed
+
   // Reset form
   document.getElementById('g-desc').value='';
   document.getElementById('g-loc').value='';
@@ -1058,7 +1060,7 @@ function submitGrievance(){
   toggleEmailPreview(false);
   closeGrievModal();
   updateGrievBadge();
-  if(S.page==='grievance') renderGrievances();
+  if(S.page==='grievance') await renderGrievances();
   toast(`Grievance logged${isPublic?' and shared to public feed':''}. View under Grievances tab.`);
 }
 
@@ -1072,12 +1074,12 @@ function switchGTab(t){
   if(t==='pub') renderPublicFeed();
 }
 
-function renderGrievances(){
+async function renderGrievances(){
   renderMyGrievances();
   if(S.grievanceTab==='pub') renderPublicFeed();
 }
 
-function renderMyGrievances(){
+async function renderMyGrievances(){
   const list=getGrievs();
   const feed=document.getElementById('griev-my');
   if(!feed) return;
