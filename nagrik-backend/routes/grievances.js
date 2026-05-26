@@ -80,8 +80,9 @@ router.post('/', requireAuth, grievanceLimiter, asyncWrap(async (req, res) => {
     if (photoData.includes(',')) {
       base64Data = photoData.split(',')[1];
     }
-    
+    console.log('[Grievance] Attempting photo upload, base64 length:', base64Data?.length);
     const uploaded = await uploadGrievancePhoto(base64Data, tempId);
+    console.log('[Grievance] Upload result:', uploaded);
     if (uploaded) {
       photoUrl = uploaded.url;
       photoPublicId = uploaded.publicId;
