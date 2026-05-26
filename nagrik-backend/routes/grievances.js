@@ -21,27 +21,73 @@ const parsePagination = (query) => {
 // ═══════════════════════════════════════════════════════════
 // ROUTE: POST /api/grievances
 // Submit a new grievance (auth required)
+// ACCEPTS BOTH frontend field names AND backend field names
 // ═══════════════════════════════════════════════════════════
 router.post('/', requireAuth, grievanceLimiter, asyncWrap(async (req, res) => {
-  const {
-    cityId = 'pune',
-    wardId,
-    wardName,
-    category,
-    description,
-    gpsLat,
-    gpsLng,
-    gpsAccuracy,
-    locationText,
-    photoData,     // base64 data URI
-    repType,
-    repId,
-    repName,
-    repEmail,
-    emailDraft,
-    isPublic = false,
-    sendConfirmationEmail = true,
-  } = req.body;
+  console.log('\n═══════════════ NEW GRIEVANCE ═══════════════');
+  console.log('[Grievance POST] Body keys:', Object.keys(req.body));
+  console.log('[Grievance POST] Has "photo":', !!req.body.photo);
+  console.log('[Grievance POST] Has "photoData":', !!req.body.photoData);
+  console.log('[Grievance POST] Has "gps" object:', !!req.body.gps);
+  console.log('[Grievance POST] User ID:', req.user.id);
+  
+  // ── NORMALIZE: accept BOTH old frontend field names AND backend field names ──
+  const body = req.body;
+  
+  const cityId = body.cityId || 'pune';
+  const category = body.category;
+  const description = body.description;
+  const emailDraft = body.emailDraft;
+  const isPublic = body.isPublic || false;
+  const sendConfirmationEmail = body.sendConfirmationEmail !== false;
+  
+  // Photo: accept 'photo' OR 'photoData'
+  const photoData = body.photoData || body.photo || null;
+  
+  // GPS: accept either separate fields OR nested gps object
+  const gpsLat = body.gpsLat ?? body.gps?.lat ?? null;
+  const gpsLng = body.gpsLng ?? body.gps?.lng ?? null;
+  const gpsAccuracy = body.gpsAccuracy ?? body.gps?.accuracy ?? null;
+  
+  // Location: accept 'location' OR 'locationText'
+  const locationText = body.locationText || body.location || null;
+  
+  // Ward: accept either separate fields OR parse from location text
+  let wardId = body.wardId || null;
+  let wardName = body.wardName || null;
+  if (!wardId && locationText) {
+    const match = locationText.match(/Ward\s+(\d+)/i);
+    if (match) wardId = parseInt(match[1], 10);
+  }
+  
+  // Representative: accept either separate fields OR parse from "corp-W5-B" format
+  let repType = body.repType || null;
+  let repId = body.repId || null;
+  let repName = body.repName || null;
+  let repEmail = body.repEmail || null;
+  
+  if (!repType && body.representative) {
+    const repStr = body.representative;
+    if (repStr.startsWith('corp-')) {
+      repType = 'corp';
+      repId = repStr.slice(5);
+    } else if (repStr.startsWith('mla-')) {
+      repType = 'mla';
+      repId = repStr.slice(4);
+    } else if (repStr.startsWith('mp-')) {
+      repType = 'mp';
+      repId = repStr.slice(3);
+    }
+  }
+  
+  console.log('[Grievance POST] Normalized:', {
+    cityId, category,
+    hasDescription: !!description, descLength: description?.length,
+    hasPhoto: !!photoData, photoSize: photoData?.length,
+    gpsLat, gpsLng,
+    locationText: locationText?.substring(0, 50),
+    wardId, repType, repId
+  });
 
   // ── Validation ──
   if (!category || !GRIEVANCE_CATEGORIES.includes(category)) {
@@ -58,7 +104,9 @@ router.post('/', requireAuth, grievanceLimiter, asyncWrap(async (req, res) => {
     return res.status(400).json({ error: 'Description must be under 2000 characters', code: 'DESCRIPTION_TOO_LONG' });
   }
   if (repType && !['corp', 'mla', 'mp'].includes(repType)) {
-    return res.status(400).json({ error: 'Invalid repType', code: 'INVALID_REP_TYPE' });
+    console.warn('[Grievance POST] Invalid repType, ignoring:', repType);
+    repType = null;
+    repId = null;
   }
 
   // ── Generate reference code ──
@@ -66,33 +114,32 @@ router.post('/', requireAuth, grievanceLimiter, asyncWrap(async (req, res) => {
     `SELECT generate_grievance_ref($1) AS ref_code`, [cityId]
   );
   const refCode = refRows[0].ref_code;
+  console.log('[Grievance POST] Ref code:', refCode);
 
   // ── Upload photo (if provided) ──
- let photoUrl = null;
+  let photoUrl = null;
   let photoPublicId = null;
-if (photoData) {
-  try {
-    console.log('[Grievance] photoData received, length:', photoData.length);
-    const { v4: uuidv4 } = require('uuid');
-    const tempId = uuidv4();
-    
-    let base64Data = photoData;
-    if (photoData.includes(',')) {
-      base64Data = photoData.split(',')[1];
+  if (photoData) {
+    console.log('[Grievance POST] 📸 Photo provided, attempting upload...');
+    try {
+      const { v4: uuidv4 } = require('uuid');
+      const tempId = uuidv4();
+      const uploaded = await uploadGrievancePhoto(photoData, tempId);
+      if (uploaded) {
+        photoUrl = uploaded.url;
+        photoPublicId = uploaded.publicId;
+        console.log('[Grievance POST] ✅ Photo uploaded successfully:', photoUrl);
+      } else {
+        console.warn('[Grievance POST] ⚠️ Upload returned null');
+      }
+    } catch (uploadErr) {
+      console.error('[Grievance POST] ❌ Photo upload FAILED:', uploadErr.message);
+      console.error('[Grievance POST] Stack:', uploadErr.stack);
+      // Don't fail the whole request - grievance still gets saved without photo
     }
-    console.log('[Grievance] base64Data after strip, length:', base64Data.length);
-    
-    const uploaded = await uploadGrievancePhoto(base64Data, tempId);
-    console.log('[Grievance] upload result:', uploaded);
-    if (uploaded) {
-      photoUrl = uploaded.url;
-      photoPublicId = uploaded.publicId;
-    }
-  } catch (uploadErr) {
-    console.warn('[Grievance] Photo upload failed:', uploadErr.message);
-    // Don't fail the whole request for a photo upload error
+  } else {
+    console.log('[Grievance POST] ℹ️ No photo in this submission');
   }
-}
 
   // ── Insert grievance (with transaction for user counter) ──
   const client = await getClient();
@@ -122,13 +169,11 @@ if (photoData) {
     );
     grievance = rows[0];
 
-    // Increment user's grievance counter
     await client.query(
       'UPDATE users SET grievance_count = grievance_count + 1 WHERE id = $1',
       [req.user.id]
     );
 
-    // Create initial status update log
     await client.query(
       `INSERT INTO grievance_updates (grievance_id, updated_by, from_status, to_status, note)
        VALUES ($1, $2, NULL, 'filed', 'Grievance submitted by citizen')`,
@@ -136,9 +181,12 @@ if (photoData) {
     );
 
     await client.query('COMMIT');
+    console.log('[Grievance POST] ✅ Saved to DB. ID:', grievance.id, 'photo_url:', grievance.photo_url);
+    console.log('═══════════════════════════════════════════════\n');
   } catch (err) {
     await client.query('ROLLBACK');
-    if (photoPublicId) await deletePhoto(photoPublicId); // Cleanup uploaded photo
+    if (photoPublicId) await deletePhoto(photoPublicId);
+    console.error('[Grievance POST] ❌ Database error:', err.message);
     throw err;
   } finally {
     client.release();
@@ -272,10 +320,8 @@ router.get('/:id', optionalAuth, asyncWrap(async (req, res) => {
     return res.status(404).json({ error: 'Grievance not found', code: 'NOT_FOUND' });
   }
 
-  // Increment view count (non-blocking)
   query('UPDATE grievances SET view_count = view_count + 1 WHERE id = $1', [req.params.id]).catch(() => {});
 
-  // Get status history
   const { rows: updates } = await query(
     `SELECT gu.from_status, gu.to_status, gu.note, gu.created_at,
             LEFT(u.name, 50) AS updated_by_name
@@ -302,7 +348,6 @@ router.patch('/:id', requireAuth, asyncWrap(async (req, res) => {
   if (!rows.length) return res.status(404).json({ error: 'Grievance not found', code: 'NOT_FOUND' });
   const grievance = rows[0];
 
-  // Only owner can edit
   if (grievance.user_id !== req.user.id && !['admin', 'moderator'].includes(req.user.role)) {
     return res.status(403).json({ error: 'Not your grievance', code: 'FORBIDDEN' });
   }
@@ -333,7 +378,7 @@ router.patch('/:id', requireAuth, asyncWrap(async (req, res) => {
 
 // ═══════════════════════════════════════════════════════════
 // ROUTE: POST /api/grievances/:id/upvote
-// Upvote a public grievance
+// Upvote a public grievance (toggle)
 // ═══════════════════════════════════════════════════════════
 router.post('/:id/upvote', requireAuth, asyncWrap(async (req, res) => {
   try {
@@ -347,7 +392,7 @@ router.post('/:id/upvote', requireAuth, asyncWrap(async (req, res) => {
     );
     res.json({ success: true, action: 'upvoted' });
   } catch (err) {
-    if (err.code === '23505') { // Already upvoted — remove it (toggle)
+    if (err.code === '23505') {
       await query(`DELETE FROM grievance_upvotes WHERE grievance_id = $1 AND user_id = $2`, [req.params.id, req.user.id]);
       await query(`UPDATE grievances SET upvotes = GREATEST(0, upvotes - 1) WHERE id = $1`, [req.params.id]);
       return res.json({ success: true, action: 'removed' });
@@ -367,27 +412,33 @@ router.put('/:id/status', requireAuth, requireRole('admin', 'moderator', 'pmc_of
     return res.status(400).json({ error: 'Invalid status', code: 'INVALID_STATUS', allowed: GRIEVANCE_STATUSES });
   }
 
-  const { rows: existing } = await query(`SELECT id, status FROM grievances WHERE id = $1`, [req.params.id]);
-  if (!existing.length) return res.status(404).json({ error: 'Grievance not found' });
-
   const client = await getClient();
   try {
     await client.query('BEGIN');
+
     const { rows } = await client.query(
-      `UPDATE grievances SET status = $1, updated_at = NOW(),
-        assigned_to = $2,
-        resolved_at = CASE WHEN $1 = 'resolved' THEN NOW() ELSE resolved_at END,
-        resolution_note = CASE WHEN $3::text IS NOT NULL THEN $3 ELSE resolution_note END
-       WHERE id = $4 RETURNING *`,
-      [status, req.user.id, note || null, req.params.id]
+      `SELECT status FROM grievances WHERE id = $1`,
+      [req.params.id]
     );
+    if (!rows.length) return res.status(404).json({ error: 'Grievance not found', code: 'NOT_FOUND' });
+
+    const oldStatus = rows[0].status;
+
+    await client.query(
+      `UPDATE grievances SET status = $1, updated_at = NOW() ${status === 'resolved' ? ', resolved_at = NOW(), resolution_note = $2' : ''} WHERE id = $${status === 'resolved' ? '3' : '2'}`,
+      status === 'resolved'
+        ? [status, note || null, req.params.id]
+        : [status, req.params.id]
+    );
+
     await client.query(
       `INSERT INTO grievance_updates (grievance_id, updated_by, from_status, to_status, note)
        VALUES ($1, $2, $3, $4, $5)`,
-      [req.params.id, req.user.id, existing[0].status, status, note || null]
+      [req.params.id, req.user.id, oldStatus, status, note || null]
     );
+
     await client.query('COMMIT');
-    res.json(rows[0]);
+    res.json({ success: true, from: oldStatus, to: status });
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
