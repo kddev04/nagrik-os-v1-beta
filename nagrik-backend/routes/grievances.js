@@ -71,19 +71,26 @@ router.post('/', requireAuth, grievanceLimiter, asyncWrap(async (req, res) => {
   let photoUrl = null;
   let photoPublicId = null;
   if (photoData) {
-    try {
-      const { v4: uuidv4 } = require('uuid');
-      const tempId = uuidv4();
-      const uploaded = await uploadGrievancePhoto(photoData, tempId);
-      if (uploaded) {
-        photoUrl = uploaded.url;
-        photoPublicId = uploaded.publicId;
-      }
-    } catch (uploadErr) {
-      console.warn('[Grievance] Photo upload failed:', uploadErr.message);
-      // Don't fail the whole request for a photo upload error
+  try {
+    const { v4: uuidv4 } = require('uuid');
+    const tempId = uuidv4();
+    
+    // Strip data:image prefix if present
+    let base64Data = photoData;
+    if (photoData.includes(',')) {
+      base64Data = photoData.split(',')[1];
     }
+    
+    const uploaded = await uploadGrievancePhoto(base64Data, tempId);
+    if (uploaded) {
+      photoUrl = uploaded.url;
+      photoPublicId = uploaded.publicId;
+    }
+  } catch (uploadErr) {
+    console.warn('[Grievance] Photo upload failed:', uploadErr.message);
+    // Don't fail the whole request for a photo upload error
   }
+}
 
   // ── Insert grievance (with transaction for user counter) ──
   const client = await getClient();
