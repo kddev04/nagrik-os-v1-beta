@@ -68,21 +68,21 @@ router.post('/', requireAuth, grievanceLimiter, asyncWrap(async (req, res) => {
   const refCode = refRows[0].ref_code;
 
   // ── Upload photo (if provided) ──
-  let photoUrl = null;
-  let photoPublicId = null;
-  if (photoData) {
+ let photoUrl = null;
+if (photoData) {
   try {
+    console.log('[Grievance] photoData received, length:', photoData.length);
     const { v4: uuidv4 } = require('uuid');
     const tempId = uuidv4();
     
-    // Strip data:image prefix if present
     let base64Data = photoData;
     if (photoData.includes(',')) {
       base64Data = photoData.split(',')[1];
     }
-    console.log('[Grievance] Attempting photo upload, base64 length:', base64Data?.length);
+    console.log('[Grievance] base64Data after strip, length:', base64Data.length);
+    
     const uploaded = await uploadGrievancePhoto(base64Data, tempId);
-    console.log('[Grievance] Upload result:', uploaded);
+    console.log('[Grievance] upload result:', uploaded);
     if (uploaded) {
       photoUrl = uploaded.url;
       photoPublicId = uploaded.publicId;
