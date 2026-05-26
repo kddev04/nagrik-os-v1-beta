@@ -69,6 +69,7 @@ router.post('/', requireAuth, grievanceLimiter, asyncWrap(async (req, res) => {
 
   // ── Upload photo (if provided) ──
  let photoUrl = null;
+  let photoPublicId = null;
 if (photoData) {
   try {
     console.log('[Grievance] photoData received, length:', photoData.length);
