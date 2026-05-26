@@ -801,6 +801,24 @@ const BACKEND_URL='';
 const getJWT=()=>localStorage.getItem('nagrik_jwt');
 const authHeaders=()=>({'Content-Type':'application/json','Authorization':`Bearer ${getJWT()}`});
 
+function transformGriev(g){
+  return {
+    id: g.id,
+    ts: g.created_at,
+    category: g.category,
+    description: g.description,
+    photo: g.photo_url,
+    location: g.location_text,
+    gps: (g.gps_lat && g.gps_lng) ? { lat: parseFloat(g.gps_lat), lng: parseFloat(g.gps_lng) } : null,
+    representative: (g.rep_type && g.rep_id) ? `${g.rep_type}-${g.rep_id}` : null,
+    isPublic: g.is_public,
+    refCode: g.ref_code,
+    status: g.status,
+    upvotes: g.upvotes || 0,
+    submitterName: g.submitter_name || null,
+  };
+}
+
 async function getGrievs(){
   try{
     const jwt=getJWT();
@@ -808,7 +826,7 @@ async function getGrievs(){
     const res=await fetch(`${BACKEND_URL}/api/grievances/mine`,{headers:authHeaders()});
     if(!res.ok)return[];
     const data=await res.json();
-    return data.data||[];
+    return (data.data || []).map(transformGriev);
   }catch(e){console.warn('Fetch grievances failed',e);return[];}
 }
 
@@ -817,7 +835,10 @@ async function saveGrievs(grievanceData){
     const jwt=getJWT();
     if(!jwt){toast('Log in first','err');return false;}
     const res=await fetch(`${BACKEND_URL}/api/grievances`,{method:'POST',headers:authHeaders(),body:JSON.stringify(grievanceData)});
-    if(!res.ok){const err=await res.json();toast(err.error||'Failed to submit','err');return false;}
+    if(!res.ok){
+      if(res.status===401){toast('Session expired','err');setTimeout(()=>{window.location.href='/login';},1500);return false;}
+      const err=await res.json();toast(err.error||'Failed to submit','err');return false;
+    }
     const result=await res.json();
     toast(`Filed: ${result.refCode}`,'success');
     return true;
@@ -1099,7 +1120,7 @@ async function renderGrievances(){
 }
 
 async function renderMyGrievances(){
-  const list=getGrievs();
+  const list = await getGrievs();
   const feed=document.getElementById('griev-my');
   if(!feed) return;
   if(!list.length){feed.innerHTML='<div class="griev-card empty">No grievances yet. Tap "New Grievance" to file one with photo + geotag.</div>';return}
@@ -1115,7 +1136,7 @@ async function renderPublicFeed(){
       return;
     }
     const data = await res.json();
-    const list = data.data || [];
+    const list = (data.data || []).map(transformGriev);
     const feed = document.getElementById('griev-pub');
     if(!feed) return;
     if(!list.length){
