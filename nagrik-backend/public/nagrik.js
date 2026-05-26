@@ -1074,7 +1074,7 @@ function removePhoto(){
 async function submitGrievance(){
   const desc=(document.getElementById('g-desc')?.value||'').trim();
   if(!desc){toast('Please describe the grievance','err');return}
-  const isPublic=document.getElementById('g-public')?.checked&&!!S.photoData&&!!S.photoGPS;
+  const isPublic = document.getElementById('g-public')?.checked || false;
   const g={
     id:'g-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),
     ts:new Date().toISOString(),
@@ -1186,46 +1186,124 @@ function grievCard(g,isOwn){
   </div>`;
 }
 
-function delGriev(id){
+async function delGriev(id){
   if(!confirm('Delete this grievance permanently?')) return;
-  saveGrievs(getGrievs().filter(g=>g.id!==id));
-  renderGrievances();updateGrievBadge();toast('Deleted');
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/grievances/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders()
+    });
+    if (!res.ok) {
+      if (res.status === 401) { toast('Session expired','err'); setTimeout(()=>{window.location.href='/login';},1500); return; }
+      const err = await res.json();
+      toast(err.error || 'Delete failed','err');
+      return;
+    }
+    await renderGrievances();
+    updateGrievBadge();
+    toast('Deleted','success');
+  } catch (e) {
+    console.error('Delete error:', e);
+    toast('Network error','err');
+  }
 }
 
-function copyGriev(id){
-  const g=getGrievs().find(x=>x.id===id);
-  if(!g) return;
-  const admin=ADMIN_EMAILS[g.category]||ADMIN_EMAILS['Other'];
-  const txt=`NAGRIK OS · Civic Grievance Report
-© Krishant Dutta | nagrik-os.pune.in
-━━━━━━━━━━━━━━━━━━━━━━━
+async function copyGriev(id){
+  const list = await getGrievs();
+  const g = list.find(x => x.id === id);
+  if (!g) { toast('Grievance not found','err'); return; }
+  
+  const admin = (typeof ADMIN_EMAILS !== 'undefined' && ADMIN_EMAILS[g.category]) || (typeof ADMIN_EMAILS !== 'undefined' && ADMIN_EMAILS['Other']) || 'grievances@pmc.gov.in';
+  const date = new Date(g.ts).toLocaleString('en-IN', {dateStyle: 'medium', timeStyle: 'short'});
+  
+  const txt = `NAGRIK OS · Civic Grievance Report
+─────────────────────────────────
+Reference: ${g.refCode || g.id}
+Filed: ${date}
 Category: ${g.category}
-Date: ${new Date(g.ts).toLocaleString('en-IN')}
-Location: ${g.location}
-${g.gps?`GPS: ${g.gps.lat.toFixed(5)}, ${g.gps.lng.toFixed(5)}\nMaps: https://maps.google.com/?q=${g.gps.lat.toFixed(5)},${g.gps.lng.toFixed(5)}`:''}
+Status: ${g.status || 'filed'}
 
 Description:
 ${g.description}
 
-Relevant Authority: ${admin.name}
-Authority Email: ${admin.email}
-━━━━━━━━━━━━━━━━━━━━━━━`;
-  navigator.clipboard.writeText(txt).then(()=>toast('Copied — paste into PMC portal or WhatsApp'),()=>toast('Copy failed','err'));
+${g.location ? `Location: ${g.location}` : ''}
+${g.gps ? `GPS: ${g.gps.lat.toFixed(5)}, ${g.gps.lng.toFixed(5)}` : ''}
+${g.gps ? `Maps: https://maps.google.com/?q=${g.gps.lat.toFixed(5)},${g.gps.lng.toFixed(5)}` : ''}
+
+Filed via Nagrik OS · Citizen Accountability Platform
+${admin ? `→ Send to: ${admin}` : ''}`.trim();
+
+  try {
+    await navigator.clipboard.writeText(txt);
+    toast('Copied to clipboard','success');
+  } catch (e) {
+    // Fallback for browsers without clipboard API
+    const ta = document.createElement('textarea');
+    ta.value = txt;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('Copied to clipboard','success');
+  }
 }
 
-function emailGriev(id,target){
-  const g=getGrievs().find(x=>x.id===id);
-  if(!g) return;
-  const admin=ADMIN_EMAILS[g.category]||ADMIN_EMAILS['Other'];
-  const subj=encodeURIComponent(`Civic Grievance — ${g.category} · ${g.location}`);
-  const body=encodeURIComponent(g.emailDraft||`Grievance: ${g.category}\nLocation: ${g.location}\n${g.description}`);
-  let email='';
-  if(target==='admin') email=admin.email;
-  else if(target==='mla'&&g.representative?.startsWith('mla-')){const m=MLAS.find(x=>x.const===g.representative.slice(4));email=m?.email||''}
-  else if(target==='mp'&&g.representative?.startsWith('mp-')){const p=MPS.find(x=>x.const===g.representative.slice(3));email=p?.email||''}
-  if(!email){copyGriev(id);toast('No email on file — text copied','warn');return}
-  window.location.href=`mailto:${email}?subject=${subj}&body=${body}`;
+async function emailGriev(id, target){
+  const list = await getGrievs();
+  const g = list.find(x => x.id === id);
+  if (!g) { toast('Grievance not found','err'); return; }
+  
+  let to = '';
+  if (target === 'admin') {
+    to = (typeof ADMIN_EMAILS !== 'undefined' && ADMIN_EMAILS[g.category]) || (typeof ADMIN_EMAILS !== 'undefined' && ADMIN_EMAILS['Other']) || 'grievances@pmc.gov.in';
+  } else if (target === 'mla' && g.representative && g.representative.startsWith('mla-')) {
+    const mlaId = g.representative.slice(4);
+    const mla = (typeof MLAS !== 'undefined') ? MLAS.find(m => m.const === mlaId) : null;
+    to = mla?.email || '';
+  } else if (target === 'mp' && g.representative && g.representative.startsWith('mp-')) {
+    const mpId = g.representative.slice(3);
+    const mp = (typeof MPS !== 'undefined') ? MPS.find(p => p.const === mpId) : null;
+    to = mp?.email || '';
+  }
+  
+  if (!to) { toast(`No ${target.toUpperCase()} email found`,'err'); return; }
+  
+  const date = new Date(g.ts).toLocaleString('en-IN', {dateStyle: 'medium', timeStyle: 'short'});
+  const subject = `Urgent Civic Grievance: ${g.category} — Ref ${g.refCode || g.id}`;
+  
+  const body = `Dear Sir/Madam,
+
+I am writing to bring to your urgent attention the following civic grievance:
+
+Reference Code: ${g.refCode || g.id}
+Filed Date: ${date}
+Category: ${g.category}
+
+Description:
+${g.description}
+
+${g.location ? `Location: ${g.location}` : ''}
+${g.gps ? `GPS Coordinates: ${g.gps.lat.toFixed(5)}, ${g.gps.lng.toFixed(5)}` : ''}
+${g.gps ? `View on Map: https://maps.google.com/?q=${g.gps.lat.toFixed(5)},${g.gps.lng.toFixed(5)}` : ''}
+${g.photo ? `Photo Evidence: ${g.photo}` : ''}
+
+As per the Right to Information Act, 2005, and citizen accountability standards, I request:
+1. Acknowledgment of this grievance within 7 days
+2. Action taken within 30 days as per civic norms
+3. A written response on the steps taken
+
+I am filing this via Nagrik OS — a citizen accountability platform — and a public record is being maintained.
+
+Thank you for your attention to this matter.
+
+Regards,
+A Concerned Citizen
+Filed via Nagrik OS · सत्यमेव जयते`.trim();
+
+  const mailtoUrl = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailtoUrl;
 }
+
 
 function exportGrievances(){
   const list=getGrievs();
