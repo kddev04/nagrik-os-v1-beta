@@ -64,7 +64,6 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at      TIMESTAMPTZ  DEFAULT NOW()
 );
 
-DROP TRIGGER IF EXISTS trg_users_updated_at ON users CASCADE;
 CREATE TRIGGER trg_users_updated_at
   BEFORE UPDATE ON users
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -171,7 +170,6 @@ CREATE TABLE IF NOT EXISTS grievances (
   updated_at      TIMESTAMPTZ  DEFAULT NOW()
 );
 
-DROP TRIGGER IF EXISTS trg_grievances_updated_at ON grievances CASCADE;
 CREATE TRIGGER trg_grievances_updated_at
   BEFORE UPDATE ON grievances
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -238,7 +236,6 @@ CREATE TABLE IF NOT EXISTS ratings (
   UNIQUE(user_id, city_id, ward_id)                  -- One rating per user per ward
 );
 
-DROP TRIGGER IF EXISTS trg_ratings_updated_at ON ratings CASCADE;
 CREATE TRIGGER trg_ratings_updated_at
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
@@ -290,7 +287,6 @@ CREATE TABLE IF NOT EXISTS representatives (
   updated_at      TIMESTAMPTZ  DEFAULT NOW()
 );
 
-DROP TRIGGER IF EXISTS trg_reps_updated_at ON representatives CASCADE;
 CREATE TRIGGER trg_reps_updated_at
   BEFORE UPDATE ON representatives
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
