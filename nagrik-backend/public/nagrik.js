@@ -1128,26 +1128,38 @@ async function renderMyGrievances(){
 }
 
 async function renderPublicFeed(){
+  const feed = document.getElementById('griev-pub');
+  if(!feed) return;
+  
   try{
-    const res = await fetch(`${BACKEND_URL}/api/grievances/public?cityId=${CITY_CONFIG.id}`);
+    // HARDCODED to 'pune' - bypasses CITY_CONFIG.id undefined bug
+    const url = `${BACKEND_URL}/api/grievances/public?cityId=pune`;
+    console.log('[Public Feed] Fetching:', url);
+    
+    const res = await fetch(url);
+    console.log('[Public Feed] Response status:', res.status);
+    
     if(!res.ok){ 
-      const feed=document.getElementById('griev-pub');
-      if(feed) feed.innerHTML='<div class="griev-card empty">Failed to load public feed</div>';
+      feed.innerHTML = '<div class="griev-card empty">Failed to load public feed (HTTP ' + res.status + ')</div>';
       return;
     }
+    
     const data = await res.json();
+    console.log('[Public Feed] Got', data.data?.length || 0, 'grievances');
+    console.log('[Public Feed] Sample:', data.data?.[0]);
+    
     const list = (data.data || []).map(transformGriev);
-    const feed = document.getElementById('griev-pub');
-    if(!feed) return;
+    
     if(!list.length){
-      feed.innerHTML='<div class="griev-card empty">No public geotagged grievances yet. Submit one with photo + location and tick "Share to Public Feed".</div>';
+      feed.innerHTML = '<div class="griev-card empty">No public geotagged grievances yet. Submit one with photo + location and tick "Share to Public Feed".</div>';
       return;
     }
+    
     feed.innerHTML = list.map(g => grievCard(g, false)).join('');
+    console.log('[Public Feed] ✅ Rendered', list.length, 'cards');
   }catch(e){
-    console.error('Render public feed error', e);
-    const feed = document.getElementById('griev-pub');
-    if(feed) feed.innerHTML='<div class="griev-card empty">Network error loading feed</div>';
+    console.error('[Public Feed] Error:', e);
+    feed.innerHTML = '<div class="griev-card empty">Network error: ' + e.message + '</div>';
   }
 }
 
