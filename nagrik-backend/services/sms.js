@@ -20,42 +20,92 @@ const isValidIndianPhone = (phone) => {
   return /^\+91[6-9]\d{9}$/.test(normalized);
 };
 
-// ── Fast2SMS (India — cheapest for bulk, DLT registered) ─────
+// ═══════════════════════════════════════════════════════════
+// Fast2SMS — India provider with DLT support + quick fallback
+// ═══════════════════════════════════════════════════════════
 const sendViaFast2SMS = async (phone, otp) => {
   const normalized = normalizeIndianPhone(phone);
   const mobile = normalized.replace('+91', '');
+  const senderId = process.env.FAST2SMS_SENDER_ID || 'NAGRIK';
+  const templateId = process.env.FAST2SMS_TEMPLATE_ID;
+  const apiKey = process.env.FAST2SMS_API_KEY;
+  
+  if (!apiKey) {
+    throw new Error('FAST2SMS_API_KEY not configured');
+  }
 
-  const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {
-    method: 'POST',
-    headers: {
-      'authorization': process.env.FAST2SMS_API_KEY,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      route: 'dlt',                      // DLT route (required for transactional SMS in India)
-      sender_id: 'NAGRIK',               // Register this sender ID with Fast2SMS
-      message: process.env.FAST2SMS_TEMPLATE_ID,  // Your DLT approved template ID
-      variables_values: otp,             // OTP value
-      numbers: mobile,
-    }),
-  });
+  console.log(`[SMS] Sending OTP to ${normalized} via Fast2SMS...`);
 
-  const data = await response.json();
-  if (!data.return) {
-    // Fallback: use quick SMS route (dev/testing only, no DLT needed)
+  // ── ATTEMPT 1: DLT route (production - requires approved template) ──
+  if (templateId) {
+    try {
+      console.log(`[SMS] Trying DLT route with template ${templateId}, sender ${senderId}`);
+      
+      const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {
+        method: 'POST',
+        headers: {
+          'authorization': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          route: 'dlt',
+          sender_id: senderId,
+          message: templateId,
+          variables_values: otp,
+          numbers: mobile,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.return) {
+        console.log(`[SMS] ✅ DLT OTP sent successfully:`, data.request_id || 'OK');
+        return data;
+      }
+      
+      console.warn(`[SMS] ⚠️ DLT route failed:`, data.message || JSON.stringify(data));
+      console.warn(`[SMS] Falling back to quick route...`);
+    } catch (dltErr) {
+      console.warn(`[SMS] DLT route error:`, dltErr.message);
+      console.warn(`[SMS] Falling back to quick route...`);
+    }
+  } else {
+    console.log(`[SMS] No FAST2SMS_TEMPLATE_ID set, using quick route directly`);
+  }
+
+  // ── ATTEMPT 2: Quick route (no DLT needed - works for testing) ──
+  try {
     const fallback = await fetch('https://www.fast2sms.com/dev/bulkV2', {
       method: 'POST',
-      headers: { 'authorization': process.env.FAST2SMS_API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ route: 'q', message: `Your Nagrik OS OTP is ${otp}. Valid for 5 minutes. Do not share.`, numbers: mobile }),
+      headers: {
+        'authorization': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        route: 'q',
+        message: `Your Nagrik OS OTP is ${otp}. Valid for 5 minutes. Do not share.`,
+        numbers: mobile,
+      }),
     });
+    
     const fallbackData = await fallback.json();
-    if (!fallbackData.return) throw new Error(`Fast2SMS: ${JSON.stringify(fallbackData)}`);
-    return fallbackData;
+    
+    if (fallbackData.return) {
+      console.log(`[SMS] ✅ Quick OTP sent successfully:`, fallbackData.request_id || 'OK');
+      return fallbackData;
+    }
+    
+    console.error(`[SMS] ❌ Quick route also failed:`, JSON.stringify(fallbackData));
+    throw new Error(`Fast2SMS: ${fallbackData.message || JSON.stringify(fallbackData)}`);
+  } catch (quickErr) {
+    console.error(`[SMS] ❌ Fast2SMS completely failed:`, quickErr.message);
+    throw quickErr;
   }
-  return data;
 };
 
-// ── Twilio ────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// Twilio — International fallback
+// ═══════════════════════════════════════════════════════════
 const sendViaTwilio = async (phone, otp) => {
   const normalized = normalizeIndianPhone(phone);
   const response = await fetch(
@@ -80,7 +130,9 @@ const sendViaTwilio = async (phone, otp) => {
   return data;
 };
 
-// ── Console fallback (dev/testing) ───────────────────────────
+// ═══════════════════════════════════════════════════════════
+// Console fallback (dev/testing)
+// ═══════════════════════════════════════════════════════════
 const sendViaConsole = (phone, otp) => {
   console.log('\n╔══════════════ SMS (dev mode) ════════════════╗');
   console.log(`║ To:  ${phone}`);
@@ -90,14 +142,10 @@ const sendViaConsole = (phone, otp) => {
 };
 
 /**
- * Send OTP via SMS.
- * Provider is selected from SMS_PROVIDER env var.
- *
- * @param {string} phone - Indian mobile number in any format
- * @param {string} otp - 6-digit OTP
+ * Main entry point: send OTP via SMS
  */
 const sendOTPSMS = async (phone, otp) => {
-  const provider = process.env.SMS_PROVIDER || 'console';
+  const provider = (process.env.SMS_PROVIDER || 'console').toLowerCase();
 
   if (provider === 'disabled') {
     console.warn('[SMS] SMS provider is disabled. OTP not sent.');
