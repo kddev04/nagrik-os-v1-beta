@@ -1189,9 +1189,9 @@ function grievCard(g,isOwn){
       <div class="griev-actions">
         ${isOwn?`<button class="g-del" onclick="delGriev('${g.id}')">Delete</button>`:''}
         <button class="g-share" onclick="copyGriev('${g.id}')">Copy Text</button>
-        <button class="g-email" onclick="emailGriev('${g.id}','admin')">✉ Email PMC</button>
-        ${g.representative&&g.representative.startsWith('mla-')?`<button class="g-email" onclick="emailGriev('${g.id}','mla')">✉ Email MLA</button>`:''}
-        ${g.representative&&g.representative.startsWith('mp-')?`<button class="g-email" onclick="emailGriev('${g.id}','mp')">✉ Email MP</button>`:''}
+        <button class="g-email" onclick="sendComplaintEmail('${g.id}','admin')">✉ Email PMC + Photo</button>
+        ${g.representative&&g.representative.startsWith('mla-')?`<button class="g-email" onclick="sendComplaintEmail('${g.id}','mla')">✉ Email MLA +Photo</button>`:''}
+        ${g.representative&&g.representative.startsWith('mp-')?`<button class="g-email" onclick="sendComplaintEmail('${g.id}','mp')">✉ Email MP + Photo</button>`:''}
         ${g.gps?`<a class="g-share" href="https://maps.google.com/?q=${g.gps.lat.toFixed(5)},${g.gps.lng.toFixed(5)}" target="_blank" rel="noopener">📍 Maps</a>`:''}
       </div>
     </div>
@@ -1315,6 +1315,47 @@ Filed via Nagrik OS · सत्यमेव जयते`.trim();
   const mailtoUrl = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   window.location.href = mailtoUrl;
 }
+async function sendComplaintEmail(id, target){
+  const jwt = getJWT();
+  if (!jwt) {
+    toast('Please log in to send complaint emails', 'err');
+    setTimeout(() => { window.location.href = '/login'; }, 1500);
+    return;
+  }
+  
+  // Show loading state on the button
+  const btns = document.querySelectorAll(`[onclick*="sendComplaintEmail('${id}'"]`);
+  btns.forEach(b => { b.disabled = true; b.textContent = '📤 Sending…'; });
+  
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/grievances/${id}/send-email`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ target })
+    });
+    
+    if (!res.ok) {
+      if (res.status === 401) {
+        toast('Session expired — please log in again', 'err');
+        setTimeout(() => { window.location.href = '/login'; }, 1500);
+        return;
+      }
+      const err = await res.json();
+      toast(err.error || 'Failed to send complaint email', 'err');
+      btns.forEach(b => { b.disabled = false; b.textContent = '✉ Email PMC + Photo'; });
+      return;
+    }
+    
+    const result = await res.json();
+    toast(`✅ Complaint emailed to ${result.recipient} with photo evidence!`, 'success');
+    btns.forEach(b => { b.disabled = true; b.textContent = '✅ Sent'; b.style.opacity = '0.6'; });
+    
+  } catch (e) {
+    console.error('Send complaint email error:', e);
+    toast('Network error — check connection', 'err');
+    btns.forEach(b => { b.disabled = false; b.textContent = '✉ Email PMC + Photo'; });
+  }
+}
 
 
 function exportGrievances(){
@@ -1338,6 +1379,7 @@ function updateGrievBadge(){
 
 // ────────────────── PAGE ROUTING ──────────────────
 function goPage(page){
+  document.body.dataset.page = page;
   S.page=page;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tn-tab').forEach(t=>t.classList.remove('active'));
@@ -1474,6 +1516,7 @@ function init(){
     const savedLang=localStorage.getItem('nagrik_lang');
     if(savedLang){document.documentElement.lang=savedLang;const b=document.getElementById('lang-btn');if(b)b.textContent=LANGS[savedLang];}
   }catch(e){}
+  document.body.dataset.page = 'home';
   buildCorpWardFilter();
   buildRepSelector();
   initMap();
