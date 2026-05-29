@@ -845,6 +845,219 @@ async function saveGrievs(grievanceData){
   }catch(e){console.error('Save error',e);toast('Network error','err');return false;}
 }
 
+async function sendComplaintEmail(id, target){
+  const jwt = getJWT();
+  if(!jwt){ toast('Please log in to send complaint emails','err'); setTimeout(()=>{location.href='/login';},1500); return; }
+  
+  const btns = document.querySelectorAll(`[onclick*="sendComplaintEmail('${id}'"]`);
+  btns.forEach(b => { b.disabled = true; b.dataset.orig = b.textContent; b.textContent = '📤 Sending...'; });
+  
+  try{
+    const res = await fetch(`${BACKEND_URL}/api/grievances/${id}/send-email`, {
+      method:'POST', headers:authHeaders(),
+      body: JSON.stringify({ target })
+    });
+    if(!res.ok){
+      if(res.status===401){ toast('Session expired','err'); setTimeout(()=>{location.href='/login';},1500); return; }
+      const err = await res.json();
+      toast(err.error || 'Email send failed','err');
+      btns.forEach(b => { b.disabled=false; b.textContent=b.dataset.orig||'✉ Email'; });
+      return;
+    }
+    const result = await res.json();
+    toast(`✅ Emailed to ${result.recipient}${result.hasPhoto?' WITH PHOTO':''}!`,'success');
+    btns.forEach(b => { b.textContent='✅ Sent'; b.style.opacity='0.6'; });
+  }catch(e){
+    console.error('Send email error:', e);
+    toast('Network error','err');
+    btns.forEach(b => { b.disabled=false; b.textContent=b.dataset.orig||'✉ Email'; });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// V1: UPVOTE / DOWNVOTE on public grievances
+// ─────────────────────────────────────────────────────────────
+async function voteGrievance(id, action){
+  const jwt = getJWT();
+  if(!jwt){ toast('Please log in to vote','err'); setTimeout(()=>{location.href='/login';},1500); return; }
+  
+  try{
+    const res = await fetch(`${BACKEND_URL}/api/grievances/${id}/${action}`, {
+      method:'POST', headers:authHeaders()
+    });
+    if(!res.ok){
+      if(res.status===401){ toast('Session expired','err'); setTimeout(()=>{location.href='/login';},1500); return; }
+      const err = await res.json();
+      toast(err.error || 'Vote failed','err');
+      return;
+    }
+    // Refresh the public feed to show updated counts
+    if(typeof renderPublicFeed === 'function') await renderPublicFeed();
+  }catch(e){
+    console.error('Vote error:', e);
+    toast('Network error','err');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// V1: COMMENTS on grievances
+// ─────────────────────────────────────────────────────────────
+async function toggleComments(grievanceId){
+  const list = document.getElementById(`comments-${grievanceId}`);
+  if(!list) return;
+  if(list.classList.contains('show')){
+    list.classList.remove('show');
+    return;
+  }
+  list.classList.add('show');
+  await loadComments(grievanceId);
+}
+
+async function loadComments(grievanceId){
+  const list = document.getElementById(`comments-${grievanceId}`);
+  if(!list) return;
+  
+  try{
+    const res = await fetch(`${BACKEND_URL}/api/grievances/${grievanceId}/comments`);
+    if(!res.ok){
+      list.innerHTML = '<div class="comment-item" style="opacity:0.6">Failed to load comments</div>' + commentFormHTML(grievanceId);
+      return;
+    }
+    const data = await res.json();
+    const comments = data.data || [];
+    
+    list.innerHTML = (comments.length
+      ? comments.map(c => `<div class="comment-item">
+          <div class="comment-author">${esc(c.author_name || 'Citizen')}<span class="comment-time">· ${new Date(c.created_at).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'})}</span></div>
+          <div class="comment-body">${esc(c.body)}</div>
+        </div>`).join('')
+      : '<div class="comment-item" style="opacity:0.6">No comments yet. Be the first.</div>'
+    ) + commentFormHTML(grievanceId);
+  }catch(e){
+    console.error('Load comments error:', e);
+    list.innerHTML = '<div class="comment-item" style="opacity:0.6">Network error</div>' + commentFormHTML(grievanceId);
+  }
+}
+
+function commentFormHTML(grievanceId){
+  return `<div class="comment-form">
+    <input type="text" id="comment-input-${grievanceId}" placeholder="Add a comment..." maxlength="1000" onkeydown="if(event.key==='Enter')postComment('${grievanceId}')">
+    <button onclick="postComment('${grievanceId}')">Post</button>
+  </div>`;
+}
+
+async function postComment(grievanceId){
+  const input = document.getElementById(`comment-input-${grievanceId}`);
+  if(!input) return;
+  const body = input.value.trim();
+  if(!body){ toast('Type something first','err'); return; }
+  
+  const jwt = getJWT();
+  if(!jwt){ toast('Please log in to comment','err'); setTimeout(()=>{location.href='/login';},1500); return; }
+  
+  try{
+    const res = await fetch(`${BACKEND_URL}/api/grievances/${grievanceId}/comments`, {
+      method:'POST', headers:authHeaders(),
+      body: JSON.stringify({ body })
+    });
+    if(!res.ok){
+      if(res.status===401){ toast('Session expired','err'); setTimeout(()=>{location.href='/login';},1500); return; }
+      const err = await res.json();
+      toast(err.error || 'Comment failed','err');
+      return;
+    }
+    input.value = '';
+    await loadComments(grievanceId);
+    toast('Comment posted','success');
+  }catch(e){
+    console.error('Post comment error:', e);
+    toast('Network error','err');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// V1: REP RATINGS (MLA / MP / Corp live averages)
+// ─────────────────────────────────────────────────────────────
+window.REP_RATINGS_CACHE = { mla: null, mp: null, corp: null };
+
+async function loadRepRatings(type){
+  try{
+    const res = await fetch(`${BACKEND_URL}/api/ratings/reps/${type}?cityId=${CITY_CONFIG.id}`);
+    if(!res.ok) return {};
+    const data = await res.json();
+    window.REP_RATINGS_CACHE[type] = data;
+    return data;
+  }catch(e){ console.warn('Load rep ratings failed:', e); return {}; }
+}
+
+async function loadAllRepRatings(){
+  await Promise.all([
+    loadRepRatings('mla'),
+    loadRepRatings('mp'),
+    loadRepRatings('corp'),
+  ]);
+}
+
+function repRatingBadge(type, repId){
+  const cache = window.REP_RATINGS_CACHE[type];
+  if(!cache || !cache[repId] || !cache[repId].rating_count){
+    return `<span class="rep-rating-badge no-data" title="No ratings yet">
+      <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+      —
+    </span>`;
+  }
+  const r = cache[repId];
+  return `<span class="rep-rating-badge" title="${r.rating_count} rating${r.rating_count!==1?'s':''}">
+    <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+    ${parseFloat(r.avg_satisfaction).toFixed(1)}
+    <span class="rep-rating-count">(${r.rating_count})</span>
+  </span>`;
+}
+
+async function rateRep(type, repId){
+  const jwt = getJWT();
+  if(!jwt){ toast('Please log in to rate','err'); setTimeout(()=>{location.href='/login';},1500); return; }
+  
+  const sat = prompt('Satisfaction rating (1–5):');
+  if(sat === null) return;
+  const s = parseInt(sat, 10);
+  if(isNaN(s) || s < 1 || s > 5){ toast('Enter a number 1-5','err'); return; }
+  
+  let safety = null;
+  if(type !== 'mp'){
+    const saf = prompt("Women's safety rating (1–5, optional - cancel to skip):");
+    if(saf !== null){
+      const sf = parseInt(saf, 10);
+      if(!isNaN(sf) && sf >= 1 && sf <= 5) safety = sf;
+    }
+  }
+  
+  try{
+    const res = await fetch(`${BACKEND_URL}/api/ratings/rep`, {
+      method:'POST', headers:authHeaders(),
+      body: JSON.stringify({ cityId: CITY_CONFIG.id, repType: type, repId, satisfaction: s, safety })
+    });
+    if(!res.ok){
+      if(res.status===401){ toast('Session expired','err'); setTimeout(()=>{location.href='/login';},1500); return; }
+      const err = await res.json();
+      toast(err.error || 'Rating failed','err');
+      return;
+    }
+    const result = await res.json();
+    // Update cache so badges update without full reload
+    if(!window.REP_RATINGS_CACHE[type]) window.REP_RATINGS_CACHE[type] = {};
+    window.REP_RATINGS_CACHE[type][repId] = result.aggregate;
+    toast(`✅ Rated! Average: ${parseFloat(result.aggregate.avg_satisfaction).toFixed(1)}/5`,'success');
+    // Trigger any re-render
+    if(typeof renderCurrentPage === 'function') renderCurrentPage();
+  }catch(e){
+    console.error('Rate rep error:', e);
+    toast('Network error','err');
+  }
+}
+
+
+
 function openGrievModal(repType,repId,wardNo,jumpToEmail){
   repType=repType||''; repId=repId||''; wardNo=wardNo||'';
   // Pre-fetch location silently (fixes iOS geolocation-inside-callback issue)
@@ -1163,17 +1376,22 @@ async function renderPublicFeed(){
   }
 }
 
-function grievCard(g,isOwn){
-  const date=new Date(g.ts).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
-  let repHTML='';
+function grievCard(g, isOwn){
+  const date = new Date(g.ts || g.created_at).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
+  let repHTML = '';
   if(g.representative){
     if(g.representative.startsWith('corp-')){const c=CORPS.find(x=>x.id===g.representative.slice(5));if(c) repHTML=`<span>👤 ${esc(c.name)} · W${c.ward_no}-${c.seat}</span>`}
     else if(g.representative.startsWith('mla-')){const m=MLAS.find(x=>x.const===g.representative.slice(4));if(m) repHTML=`<span>🏛 MLA ${esc(m.name)}</span>`}
     else if(g.representative.startsWith('mp-')){const p=MPS.find(x=>x.const===g.representative.slice(3));if(p) repHTML=`<span>🇮🇳 MP ${esc(p.name)}</span>`}
   }
-  const admin=ADMIN_EMAILS[g.category]||ADMIN_EMAILS['Other'];
+  
+  const photoSrc = g.photo || g.photo_url;
+  const upvotes = g.upvotes || 0;
+  const downvotes = g.downvotes || 0;
+  const commentCount = g.comment_count || 0;
+  
   return `<div class="griev-card">
-    ${g.photo?`<img src="${g.photo}" class="griev-photo" alt="Evidence photo" loading="lazy">`:''}
+    ${photoSrc?`<img src="${photoSrc}" class="griev-photo" alt="Evidence" loading="lazy">`:''}
     <div class="griev-body">
       <div class="griev-hrow">
         <span class="griev-cat">${esc(g.category)}</span>
@@ -1185,13 +1403,28 @@ function grievCard(g,isOwn){
         ${g.gps?`<span>🛰 <a href="https://maps.google.com/?q=${g.gps.lat.toFixed(5)},${g.gps.lng.toFixed(5)}" target="_blank" rel="noopener" style="color:var(--mint)">View on Maps</a></span>`:''}
         ${repHTML}
         ${g.isPublic?'<span style="color:var(--mint);font-size:9px">PUBLIC</span>':''}
+        ${g.refCode?`<span style="font-family:monospace;font-size:10px;color:var(--muted)">${esc(g.refCode)}</span>`:''}
       </div>
+      ${!isOwn ? `<div class="vote-row">
+        <button class="vote-btn upvote" onclick="voteGrievance('${g.id}','upvote')" title="Upvote">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l8 8h-5v8h-6v-8H4z"/></svg>
+          <span class="vote-count">${upvotes}</span>
+        </button>
+        <button class="vote-btn downvote" onclick="voteGrievance('${g.id}','downvote')" title="Downvote">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20l-8-8h5V4h6v8h5z"/></svg>
+          <span class="vote-count">${downvotes}</span>
+        </button>
+        <button class="comments-toggle" onclick="toggleComments('${g.id}')">💬 Comments (${commentCount})</button>
+      </div>
+      <div class="comments-section">
+        <div class="comments-list" id="comments-${g.id}"></div>
+      </div>` : ''}
       <div class="griev-actions">
         ${isOwn?`<button class="g-del" onclick="delGriev('${g.id}')">Delete</button>`:''}
         <button class="g-share" onclick="copyGriev('${g.id}')">Copy Text</button>
         <button class="g-email" onclick="sendComplaintEmail('${g.id}','admin')">✉ Email PMC + Photo</button>
-        ${g.representative&&g.representative.startsWith('mla-')?`<button class="g-email" onclick="sendComplaintEmail('${g.id}','mla')">✉ Email MLA +Photo</button>`:''}
-        ${g.representative&&g.representative.startsWith('mp-')?`<button class="g-email" onclick="sendComplaintEmail('${g.id}','mp')">✉ Email MP + Photo</button>`:''}
+        ${g.representative&&g.representative.startsWith('mla-')?`<button class="g-email" onclick="sendComplaintEmail('${g.id}','mla')">✉ Email MLA</button>`:''}
+        ${g.representative&&g.representative.startsWith('mp-')?`<button class="g-email" onclick="sendComplaintEmail('${g.id}','mp')">✉ Email MP</button>`:''}
         ${g.gps?`<a class="g-share" href="https://maps.google.com/?q=${g.gps.lat.toFixed(5)},${g.gps.lng.toFixed(5)}" target="_blank" rel="noopener">📍 Maps</a>`:''}
       </div>
     </div>
@@ -1517,6 +1750,7 @@ function init(){
     if(savedLang){document.documentElement.lang=savedLang;const b=document.getElementById('lang-btn');if(b)b.textContent=LANGS[savedLang];}
   }catch(e){}
   document.body.dataset.page = 'home';
+  loadAllRepRatings();
   buildCorpWardFilter();
   buildRepSelector();
   initMap();
