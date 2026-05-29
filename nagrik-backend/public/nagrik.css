@@ -754,3 +754,356 @@ html[data-mode="dark"] .modal-head{background:linear-gradient(180deg,rgba(255,12
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none !important;transition:none !important}}
 @media print{body{background:#fff;color:#000}body::before,body::after{display:none}.topnav,.footer,.lp,.map-fabs,.modal-overlay,.mobile-nav{display:none !important}}
+/* ═══════════════════════════════════════════════════════════════
+   NAGRIK OS — V1 PATCH CSS
+   Append this block to the VERY END of nagrik.css
+   DO NOT edit above — this is purely additive
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── LIGHT MODE CONTRAST FIXES ─────────────────────────────────
+   Problem: --muted (#8a6440) on white cards = ~3.4:1 — fails WCAG AA
+   Fix: boost muted, faint, and secondary text tokens in light mode
+   ──────────────────────────────────────────────────────────────── */
+:root {
+  /* PATCHED: higher contrast for light mode */
+  --muted: #5a3a14;       /* was #8a6440 — now ~6.2:1 on white ✅ */
+  --faint: #7a5530;       /* was #c4a882 — now ~4.6:1 on white ✅ */
+  --text2: #3a2010;       /* was #4a3018 — slightly deeper ✅ */
+  --border2: rgba(100,60,10,0.22);   /* was .15 — more visible borders */
+  --border3: rgba(100,60,10,0.35);   /* was .25 — stronger borders */
+}
+
+/* Dark mode overrides restore original tokens */
+html[data-mode="dark"] {
+  --muted: #7a85a3;
+  --faint: #48536f;
+  --text2: #c5cad8;
+  --border2: rgba(255,255,255,0.12);
+  --border3: rgba(255,255,255,0.22);
+}
+
+/* ─── LIGHT MODE: Label + small text ────────────────────────────
+   Labels using --muted were invisible on card backgrounds
+   ──────────────────────────────────────────────────────────────── */
+:root label,
+:root .modal label,
+:root .modal-body label,
+:root select,
+:root input,
+:root textarea {
+  color: var(--text);
+}
+
+:root .modal-eye,
+:root .griev-time,
+:root .griev-meta span {
+  color: var(--muted) !important;
+}
+
+/* Input fields in light mode — dark text on light background */
+:root input,
+:root select,
+:root textarea {
+  background: var(--surface);
+  border-color: var(--border3);
+  color: var(--text) !important;
+}
+
+:root input::placeholder,
+:root textarea::placeholder {
+  color: var(--faint);
+}
+
+/* ─── CHECKBOX: #g-public (Share to Public Feed) ────────────────
+   Native checkboxes are invisible on dark form backgrounds
+   ──────────────────────────────────────────────────────────────── */
+#g-public {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border: 2px solid var(--border3);
+  border-radius: 5px;
+  background: var(--surface);
+  cursor: pointer;
+  position: relative;
+  vertical-align: middle;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+#g-public:checked {
+  background: var(--saffron);
+  border-color: var(--saffron);
+}
+
+#g-public:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 6px;
+  height: 10px;
+  border: 2.5px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+/* Label next to checkbox */
+label[for="g-public"],
+.g-public-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text2);
+  padding: 10px 0 6px;
+}
+
+/* ─── MOBILE: Hamburger only on Map page ────────────────────────
+   goPage() sets data-page attribute on body
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  body:not([data-page="home"]) .tn-burger {
+    display: none !important;
+  }
+}
+
+/* ─── MOBILE: Day/Night + utility controls always visible ────────
+   Ensure mode-toggle shows across ALL sections on mobile
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .tn-util {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Hide city selector and clock on mobile to save space */
+  .tn-util .city-sel,
+  .tn-util .tn-clock,
+  .tn-util .tn-status {
+    display: none !important;
+  }
+
+  /* But keep lang + mode toggle always visible */
+  #lang-btn,
+  #mode-toggle {
+    display: flex !important;
+  }
+
+  /* Mobile util bar that shows below nav on non-map pages */
+  .tn-mobile-util {
+    display: flex !important;
+    position: fixed;
+    bottom: 12px;
+    right: 12px;
+    z-index: 1000;
+    gap: 8px;
+    background: var(--card);
+    border: 1px solid var(--border2);
+    border-radius: 24px;
+    padding: 6px 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+}
+
+/* ─── MOBILE: Remove Leaflet zoom buttons on touch screens ───────
+   Users pinch-to-zoom on touch — zoom +/- buttons are redundant
+   ──────────────────────────────────────────────────────────────── */
+@media (hover: none) and (pointer: coarse) {
+  .leaflet-control-zoom {
+    display: none !important;
+  }
+}
+
+/* ─── MOBILE: Remove attribution on small screens ───────────────
+   Saves precious vertical space on phones
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .leaflet-control-attribution {
+    display: none !important;
+  }
+}
+
+/* ─── MOBILE: Grievance modal ────────────────────────────────────
+   Modal overflows on small phones — make it scrollable
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .modal-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  .modal {
+    max-height: 92dvh !important;
+    height: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 20px 20px 0 0 !important;
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+
+  .modal-body {
+    padding-bottom: 80px !important; /* Space for submit button */
+  }
+
+  /* Ensure all form inputs are full width and properly sized */
+  .modal select,
+  .modal input[type="text"],
+  .modal textarea {
+    width: 100% !important;
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+    -webkit-appearance: none;
+  }
+
+  /* Photo zone touch-friendly */
+  .photo-zone {
+    min-height: 90px !important;
+    padding: 20px !important;
+  }
+
+  /* Submit button always visible at bottom */
+  .modal-actions,
+  .modal-submit-area {
+    position: sticky;
+    bottom: 0;
+    background: var(--card);
+    padding: 12px 16px;
+    border-top: 1px solid var(--border2);
+    margin: 0 -16px -16px;
+  }
+}
+
+/* ─── MOBILE: MPs section visibility ────────────────────────────
+   MPs section sometimes hidden or overflowing on mobile
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  /* Ensure MP, MLA, Corp pages render properly */
+  .page[data-page="mp"],
+  .page[data-page="mla"],
+  .page[data-page="corp"],
+  #page-mp,
+  #page-mla,
+  #page-corp {
+    display: block !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    max-width: 100vw !important;
+  }
+
+  /* Rep cards — ensure full width on mobile */
+  .rep-card {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Actions area in info panels */
+  .lp-actions,
+  .rep-actions,
+  .info-actions {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    padding: 12px 0 !important;
+  }
+
+  .lp-actions button,
+  .rep-actions button,
+  .info-actions button,
+  .lp-actions a,
+  .rep-actions a {
+    flex: 1 1 auto !important;
+    min-width: 120px !important;
+    font-size: 12px !important;
+    padding: 10px 8px !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* ─── MOBILE: Layer panel (LP) info legend actions ───────────────
+   The "actions" row (Email/Rate/Grievance buttons) clipped on phone
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  #lp {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    left: -100vw !important;
+    border-radius: 0 !important;
+  }
+
+  #lp.open {
+    left: 0 !important;
+  }
+
+  .lp-body {
+    padding: 12px !important;
+    padding-bottom: 80px !important;
+  }
+
+  /* Star rating area */
+  .lp-sat-stars svg,
+  .lp-saf-stars svg {
+    width: 28px !important;
+    height: 28px !important;
+  }
+}
+
+/* ─── MOBILE: Top nav compact ────────────────────────────────────
+   Nav tabs overflow on small screens
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .topnav {
+    padding: 0 10px !important;
+    height: auto !important;
+    min-height: 52px !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .tn-tabs {
+    display: none !important; /* Hidden on mobile — use LP menu */
+  }
+
+  .tn-brand .tn-name {
+    font-size: 16px !important;
+  }
+
+  .tn-brand .tn-city {
+    font-size: 8px !important;
+  }
+}
+
+/* ─── GRIEV CARD: light mode readability ────────────────────────
+   Public feed cards look washed out in light mode
+   ──────────────────────────────────────────────────────────────── */
+:root .griev-card {
+  background: var(--card) !important;
+  border-color: var(--border3) !important;
+  box-shadow: var(--sh-card) !important;
+}
+
+:root .griev-cat {
+  color: var(--saffron) !important;
+  font-weight: 700 !important;
+}
+
+:root .griev-txt {
+  color: var(--text) !important;
+}
+
+:root .g-del,
+:root .g-share,
+:root .g-email {
+  border-color: var(--border3) !important;
+  color: var(--text2) !important;
+}
+
+:root .g-email {
+  background: var(--saffron) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+}
+
+/* ─── END V1 PATCH ─────────────────────────────────────────────── */
