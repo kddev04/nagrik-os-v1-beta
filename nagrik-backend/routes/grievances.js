@@ -686,6 +686,228 @@ Filed via Nagrik OS (nagrikos.in) · सत्यमेव जयते`;
     });
   }
 }));
+router.post('/:id/downvote', requireAuth, asyncWrap(async (req, res) => {
+  try {
+    await query(
+      `INSERT INTO grievance_downvotes (grievance_id, user_id) VALUES ($1, $2)`,
+      [req.params.id, req.user.id]
+    );
+    // If user previously upvoted, remove that upvote too
+    const removed = await query(
+      `DELETE FROM grievance_upvotes WHERE grievance_id = $1 AND user_id = $2 RETURNING 1`,
+      [req.params.id, req.user.id]
+    );
+    if (removed.rowCount > 0) {
+      await query(`UPDATE grievances SET upvotes = GREATEST(0, upvotes - 1) WHERE id = $1`, [req.params.id]);
+    }
+    await query(`UPDATE grievances SET downvotes = downvotes + 1 WHERE id = $1`, [req.params.id]);
+    res.json({ success: true, action: 'downvoted' });
+  } catch (err) {
+    if (err.code === '23505') {
+      await query(`DELETE FROM grievance_downvotes WHERE grievance_id = $1 AND user_id = $2`, [req.params.id, req.user.id]);
+      await query(`UPDATE grievances SET downvotes = GREATEST(0, downvotes - 1) WHERE id = $1`, [req.params.id]);
+      return res.json({ success: true, action: 'removed' });
+    }
+    throw err;
+  }
+}));
+
+// ─────────────────────────────────────────────────────────────
+// ROUTE: GET /api/grievances/:id/comments
+// Public — returns comment thread
+// ─────────────────────────────────────────────────────────────
+router.get('/:id/comments', optionalAuth, asyncWrap(async (req, res) => {
+  const { rows } = await query(
+    `SELECT gc.id, gc.body, gc.created_at, gc.edited_at,
+            gc.user_id, LEFT(u.name, 50) AS author_name
+     FROM grievance_comments gc
+     LEFT JOIN users u ON u.id = gc.user_id
+     WHERE gc.grievance_id = $1
+     ORDER BY gc.created_at ASC
+     LIMIT 200`,
+    [req.params.id]
+  );
+  res.json({ data: rows, count: rows.length });
+}));
+
+// ─────────────────────────────────────────────────────────────
+// ROUTE: POST /api/grievances/:id/comments
+// Auth required — post a comment
+// ─────────────────────────────────────────────────────────────
+router.post('/:id/comments', requireAuth, asyncWrap(async (req, res) => {
+  const { body } = req.body;
+  if (!body || typeof body !== 'string' || body.trim().length < 1) {
+    return res.status(400).json({ error: 'Comment body required', code: 'EMPTY_COMMENT' });
+  }
+  if (body.length > 1000) {
+    return res.status(400).json({ error: 'Comment too long (max 1000 chars)', code: 'COMMENT_TOO_LONG' });
+  }
+
+  // Verify grievance exists & is public (or user is owner)
+  const { rows: g } = await query(
+    `SELECT id, is_public, user_id FROM grievances WHERE id = $1`,
+    [req.params.id]
+  );
+  if (!g.length) return res.status(404).json({ error: 'Grievance not found' });
+  if (!g[0].is_public && g[0].user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Cannot comment on private grievance', code: 'NOT_PUBLIC' });
+  }
+
+  const { rows } = await query(
+    `INSERT INTO grievance_comments (grievance_id, user_id, body) VALUES ($1, $2, $3)
+     RETURNING id, body, created_at`,
+    [req.params.id, req.user.id, body.trim()]
+  );
+  await query(`UPDATE grievances SET comment_count = comment_count + 1 WHERE id = $1`, [req.params.id]);
+
+  res.status(201).json({
+    success: true,
+    comment: {
+      ...rows[0],
+      user_id: req.user.id,
+      author_name: req.user.name || 'Citizen',
+    },
+  });
+}));
+
+// ─────────────────────────────────────────────────────────────
+// ROUTE: DELETE /api/grievances/:id/comments/:commentId
+// Owner of comment or admin can delete
+// ─────────────────────────────────────────────────────────────
+router.delete('/:id/comments/:commentId', requireAuth, asyncWrap(async (req, res) => {
+  const { rows } = await query(
+    `SELECT user_id FROM grievance_comments WHERE id = $1 AND grievance_id = $2`,
+    [req.params.commentId, req.params.id]
+  );
+  if (!rows.length) return res.status(404).json({ error: 'Comment not found' });
+  if (rows[0].user_id !== req.user.id && !['admin', 'moderator'].includes(req.user.role)) {
+    return res.status(403).json({ error: 'Cannot delete this comment' });
+  }
+  await query(`DELETE FROM grievance_comments WHERE id = $1`, [req.params.commentId]);
+  await query(`UPDATE grievances SET comment_count = GREATEST(0, comment_count - 1) WHERE id = $1`, [req.params.id]);
+  res.json({ success: true });
+}));
+
+// ─────────────────────────────────────────────────────────────
+// ROUTE: POST /api/grievances/:id/send-email
+// Backend sends formal email via Resend WITH photo attached
+// (mailto: cannot attach files — this is the real fix)
+// ─────────────────────────────────────────────────────────────
+router.post('/:id/send-email', requireAuth, asyncWrap(async (req, res) => {
+  const { target = 'admin' } = req.body;
+
+  const { rows } = await query(
+    `SELECT g.*, u.email AS user_email, u.name AS user_name
+     FROM grievances g LEFT JOIN users u ON u.id = g.user_id
+     WHERE g.id = $1`,
+    [req.params.id]
+  );
+  if (!rows.length) return res.status(404).json({ error: 'Grievance not found' });
+
+  const g = rows[0];
+  if (g.user_id !== req.user.id && !['admin', 'moderator'].includes(req.user.role)) {
+    return res.status(403).json({ error: 'Not your grievance' });
+  }
+
+  // Map category to admin email
+  const ADMIN_EMAILS = {
+    'Roads & Potholes':            'roads@pmc.gov.in',
+    'Water Supply':                'water@pmc.gov.in',
+    'Sewage & Waterlogging':       'sewage@pmc.gov.in',
+    'Garbage & Sanitation':        'solid.waste@pmc.gov.in',
+    'Streetlights':                'electrical@pmc.gov.in',
+    'Encroachment':                'encroachment@pmc.gov.in',
+    "Women's Safety":              'women.cell@pune.gov.in',
+    'Electricity / MSEDCL':        'pune.city@mahadiscom.in',
+    'Traffic & Signals':           'ptp@punecity.in',
+    'Construction without permit': 'buildingpermission@pmc.gov.in',
+    'Corruption':                  'vigilance@pmc.gov.in',
+    'Stray Animals':               'health@pmc.gov.in',
+    'Other':                       'citizen.helpdesk@pmc.gov.in',
+  };
+
+  let toEmail = ADMIN_EMAILS[g.category] || ADMIN_EMAILS['Other'];
+  let toName = 'Pune Municipal Corporation';
+  if (target === 'mla' && g.rep_email) { toEmail = g.rep_email; toName = `MLA ${g.rep_name || 'Office'}`; }
+  if (target === 'mp'  && g.rep_email) { toEmail = g.rep_email; toName = `MP ${g.rep_name || 'Office'}`; }
+
+  const date = new Date(g.created_at).toLocaleDateString('en-IN', { dateStyle: 'full' });
+  const gpsLink = (g.gps_lat && g.gps_lng)
+    ? `https://maps.google.com/?q=${parseFloat(g.gps_lat).toFixed(5)},${parseFloat(g.gps_lng).toFixed(5)}`
+    : null;
+  const subject = `Civic Grievance [${g.ref_code}]: ${g.category}`;
+
+  const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#1a1a1a;max-width:640px;margin:0 auto;padding:20px;background:#f5f5f5">
+<div style="background:#1a2035;color:#fff;padding:20px;border-radius:10px 10px 0 0">
+  <div style="font-size:18px;font-weight:900;letter-spacing:3px;color:#ff7a1a">NAGRIK OS</div>
+  <div style="font-size:11px;color:#aaa;margin-top:4px;letter-spacing:2px">CITIZEN ACCOUNTABILITY · PUNE</div>
+</div>
+<div style="background:#fff;padding:24px;border:1px solid #ddd;border-top:none">
+  <p>Dear ${toName},</p>
+  <p>I am writing to formally bring to your attention the following civic grievance requiring immediate action:</p>
+  <div style="background:#fff8f0;border:2px solid #ff7a1a;border-radius:8px;padding:12px 16px;margin:16px 0;display:inline-block">
+    <div style="font-size:10px;color:#888;letter-spacing:1px;text-transform:uppercase">Grievance Reference</div>
+    <div style="font-size:24px;font-weight:700;color:#ff7a1a;font-family:monospace">${g.ref_code}</div>
+  </div>
+  <table style="width:100%;border-collapse:collapse;margin:12px 0">
+    <tr><td style="padding:8px;background:#f9f9f9;border:1px solid #eee;font-size:11px;color:#888;width:140px">CATEGORY</td><td style="padding:8px;border:1px solid #eee">${g.category}</td></tr>
+    <tr><td style="padding:8px;background:#f9f9f9;border:1px solid #eee;font-size:11px;color:#888">DATE FILED</td><td style="padding:8px;border:1px solid #eee">${date}</td></tr>
+    ${g.ward_name ? `<tr><td style="padding:8px;background:#f9f9f9;border:1px solid #eee;font-size:11px;color:#888">WARD</td><td style="padding:8px;border:1px solid #eee">${g.ward_name}${g.ward_id ? ` · Ward ${g.ward_id}` : ''}</td></tr>` : ''}
+    ${g.location_text ? `<tr><td style="padding:8px;background:#f9f9f9;border:1px solid #eee;font-size:11px;color:#888">LOCATION</td><td style="padding:8px;border:1px solid #eee">${g.location_text}</td></tr>` : ''}
+    ${gpsLink ? `<tr><td style="padding:8px;background:#f9f9f9;border:1px solid #eee;font-size:11px;color:#888">GPS</td><td style="padding:8px;border:1px solid #eee"><strong>${parseFloat(g.gps_lat).toFixed(5)}°N, ${parseFloat(g.gps_lng).toFixed(5)}°E</strong> &nbsp; <a href="${gpsLink}" style="color:#2349c0">View on Maps →</a></td></tr>` : ''}
+  </table>
+  <div style="background:#f9f9f9;border-left:3px solid #ff7a1a;padding:14px 16px;font-size:14px;line-height:1.7;margin:16px 0">${g.description.replace(/\n/g, '<br>')}</div>
+  ${g.photo_url ? `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:12px;font-size:13px;color:#856404;margin:12px 0">📸 <strong>Photo evidence is attached to this email.</strong><br>Direct link: <a href="${g.photo_url}">${g.photo_url}</a></div>` : ''}
+  <div style="background:#e8f5e9;border:1px solid #4caf50;border-radius:6px;padding:14px;margin:16px 0;font-size:13px;line-height:1.7">
+    <strong>RTI Act 2005 / Citizen Rights:</strong><br>
+    1. Acknowledgment within <strong>7 days</strong><br>
+    2. Resolution within <strong>30 days</strong><br>
+    3. Written response on action taken<br><br>
+    This grievance is being publicly tracked via Nagrik OS. A non-response will be escalated.
+  </div>
+  <p>Please acknowledge receipt and initiate action at the earliest.</p>
+  <p style="margin-top:20px">Regards,<br><strong>A Concerned Citizen</strong><br>Filed via Nagrik OS · <em>सत्यमेव जयते</em></p>
+</div>
+<div style="background:#f0f0f0;padding:12px 20px;font-size:11px;color:#888;border-radius:0 0 10px 10px;border:1px solid #ddd;border-top:none">Reference: ${g.ref_code} · Tracked publicly · nagrikos.in</div>
+</body></html>`;
+
+  const text = `Civic Grievance [${g.ref_code}]: ${g.category}\nDate: ${date}\n${g.ward_name ? `Ward: ${g.ward_name}\n` : ''}${g.location_text ? `Location: ${g.location_text}\n` : ''}${g.gps_lat ? `GPS: ${parseFloat(g.gps_lat).toFixed(5)}, ${parseFloat(g.gps_lng).toFixed(5)}\n` : ''}${gpsLink ? `Map: ${gpsLink}\n` : ''}\nDescription:\n${g.description}\n\n${g.photo_url ? `Photo: ${g.photo_url}\n\n` : ''}Under RTI Act 2005:\n1. Acknowledge within 7 days\n2. Resolve within 30 days\n3. Provide written response\n\nFiled via Nagrik OS (nagrikos.in) · सत्यमेव जयते`;
+
+  // Fetch photo for attachment
+  const attachments = [];
+  if (g.photo_url) {
+    try {
+      const photoRes = await fetch(g.photo_url);
+      if (photoRes.ok) {
+        const buf = await photoRes.arrayBuffer();
+        const base64 = Buffer.from(buf).toString('base64');
+        const ext = /\.webp/i.test(g.photo_url) ? 'webp' : /\.(jpg|jpeg)/i.test(g.photo_url) ? 'jpg' : 'png';
+        attachments.push({ filename: `grievance-${g.ref_code}-evidence.${ext}`, content: base64 });
+        console.log(`[Email] ✅ Attached ${Math.round(buf.byteLength/1024)} KB photo`);
+      }
+    } catch (e) {
+      console.warn('[Email] Photo fetch failed:', e.message);
+    }
+  }
+
+  try {
+    const { sendComplaintEmailViaResend } = require('../services/email');
+    await sendComplaintEmailViaResend({ to: toEmail, subject, html, text, attachments });
+
+    await query(`UPDATE grievances SET email_sent = true, email_sent_at = NOW() WHERE id = $1`, [g.id]);
+    await query(
+      `INSERT INTO grievance_updates (grievance_id, updated_by, from_status, to_status, note)
+       VALUES ($1, $2, $3, $3, $4)`,
+      [g.id, req.user.id, g.status, `Complaint emailed to ${toEmail}${attachments.length ? ' with photo attachment' : ''}`]
+    );
+
+    console.log(`[Email] ✅ Sent complaint ${g.ref_code} → ${toEmail}`);
+    res.json({ success: true, refCode: g.ref_code, recipient: toEmail, hasPhoto: attachments.length > 0 });
+  } catch (err) {
+    console.error('[Email] ❌ Send failed:', err.message);
+    res.status(503).json({ error: 'Email send failed. Try again.', code: 'EMAIL_FAILED' });
+  }
+}));
 
 module.exports = router;
 
