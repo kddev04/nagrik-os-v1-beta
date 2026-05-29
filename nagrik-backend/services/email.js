@@ -112,5 +112,37 @@ const sendGrievanceConfirmation = (to, { refCode, category, wardName }) => send(
     </div></div>`,
   text: `Grievance ${refCode} filed. Category: ${category}. Ward: ${wardName || 'N/A'}.`,
 });
+const sendComplaintEmailViaResend = async ({ to, subject, html, text, attachments = [] }) => {
+  const payload = {
+    from: `${process.env.EMAIL_FROM_NAME || 'Nagrik OS'} <${process.env.EMAIL_FROM}>`,
+    to: [to],
+    subject,
+    html,
+    text,
+  };
 
-module.exports = { sendOTPEmail, sendGrievanceConfirmation };
+  // Resend supports attachments as array of {filename, content (base64)}
+  if (attachments.length > 0) {
+    payload.attachments = attachments.map(a => ({
+      filename: a.filename,
+      content: a.content, // base64 string
+    }));
+  }
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`Resend error ${res.status}: ${err.message || JSON.stringify(err)}`);
+  }
+  return res.json();
+};
+
+module.exports = { sendOTPEmail, sendGrievanceConfirmation, sendComplaintEmailViaResend };
