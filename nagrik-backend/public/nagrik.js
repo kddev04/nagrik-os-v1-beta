@@ -417,23 +417,34 @@ async function getRating(wno){
     const res = await fetch(`${BACKEND_URL}/api/ratings/ward/${wno}?cityId=${CITY_CONFIG.id}`, { headers: authHeaders() });
     if(!res.ok) return null;
     const data = await res.json();
-    return data.yourRating || null;
-  }catch(e){ console.warn('Get rating failed', e); return null; }
+    // Backend returns { aggregate, yourRating:{satisfaction,safety} }
+    const yr = data.yourRating;
+    if(!yr) return { sat: 0, saf: 0, agg: data.aggregate };
+    return { sat: yr.satisfaction || 0, saf: yr.safety || 0, agg: data.aggregate };
+  }catch(e){ console.warn('getRating failed', e); return null; }
 }
 
 async function setRating(wno, sat, saf){
   try{
     const jwt = getJWT();
-    if(!jwt){ toast('Log in first','err'); return false; }
+    if(!jwt){ toast('Please log in to rate','err'); setTimeout(()=>{location.href='/login';},1500); return false; }
+ 
+    // Backend requires BOTH 1-5. Guard against 0/undefined.
+    const s = Math.max(1, Math.min(5, parseInt(sat,10) || 1));
+    const f = Math.max(1, Math.min(5, parseInt(saf,10) || s));
+ 
     const res = await fetch(`${BACKEND_URL}/api/ratings`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ cityId: CITY_CONFIG.id, wardId: wno, satisfaction: sat, safety: saf })
+      method:'POST', headers:authHeaders(),
+      body: JSON.stringify({ cityId: CITY_CONFIG.id, wardId: parseInt(wno,10), satisfaction: s, safety: f })
     });
-    if(!res.ok){ const err = await res.json(); toast(err.error || 'Failed','err'); return false; }
-    toast('Rating saved','success');
+    if(!res.ok){
+      if(res.status===401){ toast('Session expired','err'); setTimeout(()=>{location.href='/login';},1500); return false; }
+      const err = await res.json().catch(()=>({}));
+      toast(err.error || 'Rating failed','err');
+      return false;
+    }
     return true;
-  }catch(e){ console.error('Error', e); toast('Network error','err'); return false; }
+  }catch(e){ console.error('setRating error', e); toast('Network error','err'); return false; }
 }
 
 function renderStarGroup(containerId,wno,type,current){
@@ -451,12 +462,25 @@ function renderStarGroup(containerId,wno,type,current){
     </svg>`;
   }).join('');
 }
-async function handleStarClick(n,wno,type){
-  const r=getRating(wno)||{sat:0,saf:0};
-  if(type==='sat') r.sat=n; else r.saf=n;
-  await setRating(wno,r.sat,r.saf);
-  updateLPRating(wno);
-  toast(`${type==='sat'?'Satisfaction':'Safety'} rating saved: ${'★'.repeat(n)}`);
+async function handleStarClick(n, wno, type){
+  // getRating is async — must await it
+  const existing = await getRating(wno) || { sat: 0, saf: 0 };
+  const sat = (type === 'sat') ? n : (existing.sat || 0);
+  const saf = (type === 'saf') ? n : (existing.saf || 0);
+ 
+  // Need BOTH values 1-5 for backend (it requires satisfaction AND safety)
+  // If the other one isn't set yet, default it to the same star so save succeeds
+  const finalSat = sat || n;
+  const finalSaf = saf || (type === 'saf' ? n : sat || n);
+ 
+  // Optimistically render the star immediately (instant visual feedback)
+  renderStarGroup(type === 'sat' ? 'lp-sat-stars' : 'lp-saf-stars', wno, type, n);
+ 
+  const ok = await setRating(wno, finalSat, finalSaf);
+  if(ok){
+    toast(`${type==='sat'?'Satisfaction':'Safety'} saved: ${'★'.repeat(n)}`, 'success');
+    if(typeof updateLPRating === 'function') await updateLPRating(wno);
+  }
 }
 function hoverStars(container,n,type){
   if(!container) return;
