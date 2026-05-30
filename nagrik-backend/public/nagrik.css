@@ -1089,5 +1089,431 @@ html[data-mode="dark"] {
 .card-rate-btn:hover { border-color: var(--saffron); color: var(--saffron); }
 
 /* ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════
+   NAGRIK OS — DEFINITIVE FINAL PATCH
+   Add at the END of nagrik.css (after all existing content)
+   ═══════════════════════════════════════════════════════════════ */
+
+
+/* ── 1. DESKTOP NAV: remove 3px gap, truly center tabs ─────────── */
+.topnav {
+  top: 0 !important;         /* was top:3px — removed the gap */
+}
+
+@media (min-width: 901px) {
+  /* True centering: tabs positioned absolutely from viewport center */
+  .tn-tabs {
+    position: absolute !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    flex: none !important;
+    max-width: 600px !important;
+    width: max-content !important;
+  }
+}
+
+
+/* ── 2. CHECKBOX FIX: both light AND dark mode ──────────────────
+   Confirmed: your markup uses accent-color (native tick).
+   No appearance:none — just enforce size and ensure visibility.
+────────────────────────────────────────────────────────────────── */
+#g-public {
+  -webkit-appearance: checkbox !important;
+  appearance: checkbox !important;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  accent-color: var(--saffron) !important;
+  cursor: pointer !important;
+  vertical-align: middle !important;
+  flex-shrink: 0 !important;
+  /* Force visibility in both modes */
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* Ensure the label wrapper shows it properly */
+label:has(#g-public) {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+}
+
+
+/* ── 3. DETAIL PANEL (MOBILE): content clears the bottom nav ───
+   .detail on mobile = 80dvh bottom sheet. Actions at bottom get
+   hidden behind the 60px mobile-nav. Fix: add padding-bottom.
+────────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  /* The detail panel is overflow-y:auto — add bottom padding */
+  .detail {
+    padding-bottom: 0 !important;
+  }
+  /* The INNER scrollable content must have clearance */
+  .detail > * {
+    /* handled per-section below */
+  }
+  /* Last section in detail (det-actions or any section) must clear nav */
+  .detail-sec:last-child,
+  .det-actions-wrap,
+  .rating-block {
+    padding-bottom: 80px !important;
+  }
+  /* Nuclear option: add padding to the whole detail scroll area */
+  .detail {
+    padding-bottom: 70px !important;
+  }
+}
+
+
+/* ── 4. "YOUR REPRESENTATIVES" POPUP: readable in light mode ───
+   buildLocPopup() hardcodes dark colors: #eef0f7, rgba(255,255,255,.1)
+   We override via the Leaflet popup container in light mode.
+────────────────────────────────────────────────────────────────── */
+:root .leaflet-popup-content {
+  color: var(--text) !important;
+}
+
+:root .leaflet-popup-content div[style*="#eef0f7"],
+:root .leaflet-popup-content div {
+  color: var(--text) !important;
+}
+
+/* Override the hardcoded "Your Representatives" title */
+:root .leaflet-popup-content {
+  --popup-title-color: var(--saffron) !important;
+}
+
+/* Fix the entire popup in light mode */
+:root .leaflet-popup-content-wrapper {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border3) !important;
+  box-shadow: 0 4px 20px rgba(100,60,10,0.15) !important;
+}
+
+:root .leaflet-popup-tip {
+  background: var(--surface) !important;
+}
+
+/* Force all text inside popup to be readable */
+:root .leaflet-popup-content * {
+  color: inherit !important;
+  border-color: var(--border2) !important;
+}
+
+/* Restore specific colored text */
+:root .leaflet-popup-content strong[style*="#ff9a4a"],
+:root .leaflet-popup-content strong[style*="#7a9bff"],
+:root .leaflet-popup-content strong[style*="#c486ff"],
+:root .leaflet-popup-content strong[style*="#00e5a0"] {
+  /* Keep their colors */
+}
+
+/* The popup "Bebas Neue" title */
+:root .leaflet-popup-content [style*="Bebas Neue"] {
+  color: var(--saffron) !important;
+}
+
+/* YOU ARE HERE label */
+:root .leaflet-popup-content [style*="#7a85a3"] {
+  color: var(--muted) !important;
+}
+
+/* The dashed dividers */
+:root .leaflet-popup-content [style*="rgba(255,255,255,.1)"] {
+  border-color: var(--border2) !important;
+}
+
+
+/* ── 5. STARS: persistent fill uses fill attr not CSS class ────
+   renderStarGroup sets fill attribute directly. The CSS .star.on
+   uses color: which doesn't affect SVG fill attribute. We fix by
+   targeting the SVG .on class with fill via CSS (override attr).
+   NOTE: This works because CSS fill overrides presentation attrs
+   in modern browsers when the selector is specific enough.
+────────────────────────────────────────────────────────────────── */
+.star.on,
+.stars svg.on {
+  fill: var(--gold) !important;
+  stroke: var(--gold) !important;
+  transform: scale(1.1);
+}
+.safety-star.on,
+.stars svg.safety-star.on {
+  fill: var(--red) !important;
+  stroke: var(--red) !important;
+}
+.star:not(.on),
+.stars svg:not(.on) {
+  fill: none !important;
+  stroke: var(--faint) !important;
+}
+.star,
+.stars svg {
+  cursor: pointer;
+  transition: fill 0.12s, stroke 0.12s, transform 0.12s;
+}
+.star:hover {
+  fill: var(--gold) !important;
+  stroke: var(--gold) !important;
+  transform: scale(1.25) !important;
+}
+.safety-star:hover {
+  fill: var(--red) !important;
+  stroke: var(--red) !important;
+  transform: scale(1.25) !important;
+}
+
+
+/* ── 6. VOTE / COMMENTS: remove IE aesthetics, add Nagrik OS style ─
+────────────────────────────────────────────────────────────────── */
+
+/* Vote row container */
+.vote-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 6px;
+  flex-wrap: wrap;
+}
+
+/* Upvote + downvote buttons */
+.vote-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px 5px 8px;
+  border-radius: 20px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid var(--border3);
+  background: transparent;
+  color: var(--text2);
+  transition: all 0.14s;
+  touch-action: manipulation;
+  min-height: 32px;
+}
+
+.vote-btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* Upvote — green when active */
+.vote-btn.upvote:hover,
+.vote-btn.upvote.active {
+  background: rgba(0, 229, 160, 0.12);
+  border-color: var(--mint);
+  color: var(--mint);
+}
+
+/* Downvote — red when active */
+.vote-btn.downvote:hover,
+.vote-btn.downvote.active {
+  background: rgba(255, 59, 85, 0.12);
+  border-color: var(--red);
+  color: var(--red);
+}
+
+/* Vote count number */
+.vote-count {
+  font-weight: 700;
+  min-width: 16px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Comments toggle button */
+.comments-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  border: 1.5px solid var(--border2);
+  background: transparent;
+  color: var(--muted);
+  transition: all 0.14s;
+  touch-action: manipulation;
+  min-height: 32px;
+}
+.comments-toggle:hover {
+  border-color: var(--saffron);
+  color: var(--saffron);
+}
+
+/* Comments section */
+.comments-section {
+  margin-top: 8px;
+}
+.comments-list {
+  display: none;
+  margin-top: 8px;
+}
+.comments-list.show {
+  display: block;
+}
+
+/* Individual comment */
+.comment-item {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-left: 2.5px solid var(--saffron);
+  border-radius: 8px;
+  padding: 9px 12px;
+  margin-bottom: 7px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* Comment header row */
+.comment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.comment-author {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--saffron);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.comment-time {
+  color: var(--muted);
+  font-size: 9px;
+  font-family: 'IBM Plex Mono', monospace;
+  margin-left: 6px;
+  font-weight: 400;
+}
+
+.comment-delete-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+  transition: color 0.12s;
+  font-family: 'IBM Plex Mono', monospace;
+  opacity: 0.5;
+}
+.comment-delete-btn:hover {
+  color: var(--red);
+  opacity: 1;
+}
+
+.comment-body {
+  color: var(--text);
+  font-size: 12.5px;
+  line-height: 1.55;
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+/* Comment input form */
+.comment-form {
+  display: flex;
+  gap: 7px;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+}
+
+.comment-form input {
+  flex: 1;
+  padding: 9px 12px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  background: var(--surface) !important;
+  border: 1.5px solid var(--border2) !important;
+  color: var(--text) !important;
+  font-family: 'IBM Plex Sans', sans-serif !important;
+  transition: border-color 0.14s !important;
+}
+
+.comment-form input:focus {
+  border-color: var(--saffron) !important;
+  outline: none !important;
+}
+
+.comment-form button {
+  padding: 9px 14px;
+  background: var(--saffron);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.5px;
+  transition: background 0.14s;
+  touch-action: manipulation;
+}
+.comment-form button:hover {
+  background: var(--saffron2, #e85a00);
+}
+
+
+/* ── 7. MOBILE: padding-bottom for content pages ───────────────
+   Pages must clear the 60px .mobile-nav at the bottom.
+────────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  /* Rep card pages - the cards list container */
+  #corp-cards, #mla-cards, #mp-cards {
+    padding-bottom: 80px !important;
+  }
+  /* Grievance feed */
+  #griev-my, #griev-pub {
+    padding-bottom: 80px !important;
+  }
+  /* Grievance page section wrapper */
+  .griev-feed, .page-grievance-inner {
+    padding-bottom: 80px !important;
+  }
+}
+
+
+/* ── 8. REP RATING: card-rate-btn style ────────────────────────── */
+.card-rate-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px 10px;
+  background: transparent;
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.3px;
+  transition: border-color 0.14s, color 0.14s;
+  text-align: center;
+  touch-action: manipulation;
+}
+.card-rate-btn:hover {
+  border-color: var(--saffron);
+  color: var(--saffron);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   END NAGRIK OS DEFINITIVE FINAL PATCH
+   ═══════════════════════════════════════════════════════════════ */
+
    END NAGRIK OS FINAL PATCH
    ═══════════════════════════════════════════════════════════════ */
