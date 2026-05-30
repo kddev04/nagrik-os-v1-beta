@@ -505,24 +505,39 @@ function hoverStars(container,n,type){
     s.setAttribute('stroke',filled?(isSafety?'#ff3b55':'#ffc94d'):'#48536f');
   });
 }
-function unhoverStars(containerId,wno,type){
-  const r=getRating(wno);
-  const current=r?(type==='sat'?r.sat:r.saf):0;
-  renderStarGroup(containerId,wno,type,current);
+async function unhoverStars(containerId, wno, type){
+  const r = await getRating(wno);
+  const current = r ? (type==='sat' ? r.sat : r.saf) : 0;
+  renderStarGroup(containerId, wno, type, current);
 }
-function updateLPRating(wno){
-  const r=getRating(wno)||{sat:0,saf:0};
-  const wd=document.getElementById('lp-rating-ward');
-  if(wd) wd.textContent=`Rating Ward ${wno}`;
-  renderStarGroup('lp-sat-stars',wno,'sat',r.sat);
-  renderStarGroup('lp-saf-stars',wno,'saf',r.saf);
-  const cw=document.getElementById('lp-crime-ward-ratings');
-  if(cw) cw.innerHTML=`<div style="font-size:11.5px;color:var(--text2);line-height:1.6">Ward ${wno} community ratings:<br>😊 Satisfaction: ${'★'.repeat(r.sat||0)+'☆'.repeat(5-(r.sat||0))} <strong>${r.sat||0}/5</strong><br>👩 Women's Safety: ${'★'.repeat(r.saf||0)+'☆'.repeat(5-(r.saf||0))} <strong style="color:var(--red)">${r.saf||0}/5</strong></div>`;
+
+async function updateLPRating(wno){
+  const r = await getRating(wno) || { sat:0, saf:0, agg:null };
+  const wd = document.getElementById('lp-rating-ward');
+  if(wd) wd.textContent = `Rating Ward ${wno}`;
+  renderStarGroup('lp-sat-stars', wno, 'sat', r.sat);
+  renderStarGroup('lp-saf-stars', wno, 'saf', r.saf);
+  const cw = document.getElementById('lp-crime-ward-ratings');
+  if(cw){
+    const agg = r.agg;
+    const avgSat = agg ? parseFloat(agg.avg_satisfaction||0).toFixed(1) : r.sat||0;
+    const avgSaf = agg ? parseFloat(agg.avg_safety||0).toFixed(1) : r.saf||0;
+    const count = agg ? agg.rating_count : (r.sat ? 1 : 0);
+    const satBar = Math.round(avgSat);
+    const safBar = Math.round(avgSaf);
+    cw.innerHTML = `<div style="font-size:11.5px;color:var(--text2);line-height:1.8">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--muted);letter-spacing:1px;margin-bottom:6px">WARD ${wno} · ${count} RATING${count!==1?'S':''}</div>
+      <div style="margin-bottom:4px">😊 <strong style="color:var(--gold)">${avgSat}/5</strong> ${'★'.repeat(satBar)+'☆'.repeat(5-satBar)} Satisfaction</div>
+      <div>👩 <strong style="color:var(--red)">${avgSaf}/5</strong> ${'★'.repeat(safBar)+'☆'.repeat(5-safBar)} Women's Safety</div>
+      ${r.sat ? `<div style="font-size:9.5px;color:var(--muted);margin-top:5px">Your rating: ${r.sat}/5 sat · ${r.saf}/5 safety</div>` : ''}
+    </div>`;
+  }
 }
+
 function renderDetStars(wno){
-  const r=getRating(wno)||{sat:0,saf:0};
+  // Returns HTML synchronously; initDetStars fills the stars async after render
   return `<div class="rating-block">
-    <div class="r-label">Rate This Ward (Your Rating)</div>
+    <div class="r-label">Rate This Ward (Tap a star)</div>
     <div class="rating-row">
       <span>😊 Satisfaction</span>
       <div class="star-group" id="det-sat-${wno}"></div>
@@ -533,10 +548,11 @@ function renderDetStars(wno){
     </div>
   </div>`;
 }
-function initDetStars(wno){
-  const r=getRating(wno)||{sat:0,saf:0};
-  renderStarGroup(`det-sat-${wno}`,wno,'sat',r.sat);
-  renderStarGroup(`det-saf-${wno}`,wno,'saf',r.saf);
+
+async function initDetStars(wno){
+  const r = await getRating(wno) || { sat:0, saf:0 };
+  renderStarGroup(`det-sat-${wno}`, wno, 'sat', r.sat);
+  renderStarGroup(`det-saf-${wno}`, wno, 'saf', r.saf);
 }
 
 // ────────────────── DETAIL PANEL ──────────────────
@@ -973,26 +989,38 @@ async function toggleComments(grievanceId){
 async function loadComments(grievanceId){
   const list = document.getElementById(`comments-${grievanceId}`);
   if(!list) return;
-  
+ 
+  const currentUserId = JSON.parse(localStorage.getItem('nagrik_user')||'{}').id || null;
+ 
   try{
     const res = await fetch(`${BACKEND_URL}/api/grievances/${grievanceId}/comments`);
     if(!res.ok){
-      list.innerHTML = '<div class="comment-item" style="opacity:0.6">Failed to load comments</div>' + commentFormHTML(grievanceId);
+      list.innerHTML = '<div class="comment-item">Failed to load comments.</div>' + commentFormHTML(grievanceId);
       return;
     }
     const data = await res.json();
     const comments = data.data || [];
-    
+ 
     list.innerHTML = (comments.length
-      ? comments.map(c => `<div class="comment-item">
-          <div class="comment-author">${esc(c.author_name || 'Citizen')}<span class="comment-time">· ${new Date(c.created_at).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'})}</span></div>
-          <div class="comment-body">${esc(c.body)}</div>
-        </div>`).join('')
-      : '<div class="comment-item" style="opacity:0.6">No comments yet. Be the first.</div>'
+      ? comments.map(c => {
+          const isOwner = currentUserId && c.user_id === currentUserId;
+          return `<div class="comment-item" id="comment-item-${c.id}">
+            <div class="comment-header">
+              <span>
+                <span class="comment-author">${esc(c.author_name || 'Citizen')}</span>
+                <span class="comment-time">· ${new Date(c.created_at).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'})}</span>
+              </span>
+              ${isOwner ? `<button class="comment-delete-btn" onclick="deleteComment('${grievanceId}','${c.id}')" title="Delete your comment">✕</button>` : ''}
+            </div>
+            <div class="comment-body">${esc(c.body)}</div>
+          </div>`;
+        }).join('')
+      : '<div class="comment-item" style="opacity:0.55;text-align:center;font-style:italic">No comments yet. Add the first one.</div>'
     ) + commentFormHTML(grievanceId);
+ 
   }catch(e){
-    console.error('Load comments error:', e);
-    list.innerHTML = '<div class="comment-item" style="opacity:0.6">Network error</div>' + commentFormHTML(grievanceId);
+    console.error('loadComments error:', e);
+    list.innerHTML = '<div class="comment-item" style="opacity:0.55">Network error loading comments.</div>' + commentFormHTML(grievanceId);
   }
 }
 
@@ -1031,6 +1059,35 @@ async function postComment(grievanceId){
     toast('Network error','err');
   }
 }
+async function deleteComment(grievanceId, commentId){
+  const jwt = getJWT();
+  if(!jwt){ toast('Please log in','err'); return; }
+  if(!confirm('Delete this comment?')) return;
+ 
+  const el = document.getElementById(`comment-item-${commentId}`);
+  if(el) el.style.opacity = '0.4';
+ 
+  try{
+    const res = await fetch(`${BACKEND_URL}/api/grievances/${grievanceId}/comments/${commentId}`, {
+      method: 'DELETE',
+      headers: authHeaders()
+    });
+    if(!res.ok){
+      if(el) el.style.opacity = '1';
+      const err = await res.json().catch(()=>({}));
+      toast(err.error || 'Delete failed','err');
+      return;
+    }
+    // Reload comments so count updates
+    await loadComments(grievanceId);
+    toast('Comment deleted');
+  }catch(e){
+    console.error('deleteComment error:', e);
+    if(el) el.style.opacity = '1';
+    toast('Network error','err');
+  }
+}
+
 
 // ─────────────────────────────────────────────────────────────
 // V1: REP RATINGS (MLA / MP / Corp live averages)
@@ -1452,12 +1509,12 @@ function grievCard(g, isOwn){
     else if(g.representative.startsWith('mla-')){const m=MLAS.find(x=>x.const===g.representative.slice(4));if(m) repHTML=`<span>🏛 MLA ${esc(m.name)}</span>`}
     else if(g.representative.startsWith('mp-')){const p=MPS.find(x=>x.const===g.representative.slice(3));if(p) repHTML=`<span>🇮🇳 MP ${esc(p.name)}</span>`}
   }
-  
+ 
   const photoSrc = g.photo || g.photo_url;
   const upvotes = g.upvotes || 0;
   const downvotes = g.downvotes || 0;
   const commentCount = g.comment_count || 0;
-  
+ 
   return `<div class="griev-card">
     ${photoSrc?`<img src="${photoSrc}" class="griev-photo" alt="Evidence" loading="lazy">`:''}
     <div class="griev-body">
@@ -1474,15 +1531,25 @@ function grievCard(g, isOwn){
         ${g.refCode?`<span style="font-family:monospace;font-size:10px;color:var(--muted)">${esc(g.refCode)}</span>`:''}
       </div>
       ${!isOwn ? `<div class="vote-row">
-        <button class="vote-btn upvote" onclick="voteGrievance('${g.id}','upvote')" title="Upvote">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l8 8h-5v8h-6v-8H4z"/></svg>
+        <button class="vote-btn upvote" onclick="voteGrievance('${g.id}','upvote')" title="Helpful — upvote this grievance">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/>
+            <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
+          </svg>
           <span class="vote-count">${upvotes}</span>
         </button>
-        <button class="vote-btn downvote" onclick="voteGrievance('${g.id}','downvote')" title="Downvote">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20l-8-8h5V4h6v8h5z"/></svg>
+        <button class="vote-btn downvote" onclick="voteGrievance('${g.id}','downvote')" title="Not relevant — downvote">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/>
+            <path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/>
+          </svg>
           <span class="vote-count">${downvotes}</span>
         </button>
-        <button class="comments-toggle" onclick="toggleComments('${g.id}')">💬 Comments (${commentCount})</button>
+        <button class="comments-toggle" onclick="toggleComments('${g.id}')">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          ${commentCount > 0 ? `<span style="background:var(--saffron);color:#000;font-size:9px;padding:1px 5px;border-radius:8px;font-weight:700">${commentCount}</span>` : ''}
+          Comments
+        </button>
       </div>
       <div class="comments-section">
         <div class="comments-list" id="comments-${g.id}"></div>
@@ -1490,9 +1557,9 @@ function grievCard(g, isOwn){
       <div class="griev-actions">
         ${isOwn?`<button class="g-del" onclick="delGriev('${g.id}')">Delete</button>`:''}
         <button class="g-share" onclick="copyGriev('${g.id}')">Copy Text</button>
-        <button class="g-email" onclick="sendComplaintEmail('${g.id}','admin')">✉ Email PMC + Photo</button>
-        ${g.representative&&g.representative.startsWith('mla-')?`<button class="g-email" onclick="sendComplaintEmail('${g.id}','mla')">✉ Email MLA</button>`:''}
-        ${g.representative&&g.representative.startsWith('mp-')?`<button class="g-email" onclick="sendComplaintEmail('${g.id}','mp')">✉ Email MP</button>`:''}
+        <button class="g-email" onclick="emailGriev('${g.id}','admin')">✉ Email PMC</button>
+        ${g.representative&&g.representative.startsWith('mla-')?`<button class="g-email" onclick="emailGriev('${g.id}','mla')">✉ Email MLA</button>`:''}
+        ${g.representative&&g.representative.startsWith('mp-')?`<button class="g-email" onclick="emailGriev('${g.id}','mp')">✉ Email MP</button>`:''}
         ${g.gps?`<a class="g-share" href="https://maps.google.com/?q=${g.gps.lat.toFixed(5)},${g.gps.lng.toFixed(5)}" target="_blank" rel="noopener">📍 Maps</a>`:''}
       </div>
     </div>
