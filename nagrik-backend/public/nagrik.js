@@ -413,29 +413,30 @@ const RATING_KEY=`nagrik_ratings_${CITY_CONFIG.id}_v3`;
 async function getRating(wno){
   try{
     const jwt = getJWT();
-    if(!jwt) return null;
+    if(!jwt) return { sat:0, saf:0 };
     const res = await fetch(`${BACKEND_URL}/api/ratings/ward/${wno}?cityId=${CITY_CONFIG.id}`, { headers: authHeaders() });
-    if(!res.ok) return null;
+    if(!res.ok) return { sat:0, saf:0 };
     const data = await res.json();
-    // Backend returns { aggregate, yourRating:{satisfaction,safety} }
     const yr = data.yourRating;
-    if(!yr) return { sat: 0, saf: 0, agg: data.aggregate };
-    return { sat: yr.satisfaction || 0, saf: yr.safety || 0, agg: data.aggregate };
-  }catch(e){ console.warn('getRating failed', e); return null; }
+    // Backend returns {satisfaction, safety} → return {sat, saf}
+    return {
+      sat: yr ? (yr.satisfaction || 0) : 0,
+      saf: yr ? (yr.safety || 0) : 0,
+      agg: data.aggregate || null
+    };
+  }catch(e){ console.warn('getRating failed', e); return { sat:0, saf:0 }; }
 }
 
 async function setRating(wno, sat, saf){
   try{
     const jwt = getJWT();
-    if(!jwt){ toast('Please log in to rate','err'); setTimeout(()=>{location.href='/login';},1500); return false; }
- 
-    // Backend requires BOTH 1-5. Guard against 0/undefined.
+    if(!jwt){ toast('Log in to rate','err'); setTimeout(()=>{location.href='/login';},1500); return false; }
+    // Backend requires BOTH values 1–5. Clamp to minimum 1.
     const s = Math.max(1, Math.min(5, parseInt(sat,10) || 1));
     const f = Math.max(1, Math.min(5, parseInt(saf,10) || s));
- 
     const res = await fetch(`${BACKEND_URL}/api/ratings`, {
       method:'POST', headers:authHeaders(),
-      body: JSON.stringify({ cityId: CITY_CONFIG.id, wardId: parseInt(wno,10), satisfaction: s, safety: f })
+      body:JSON.stringify({ cityId: CITY_CONFIG.id, wardId: parseInt(wno,10), satisfaction: s, safety: f })
     });
     if(!res.ok){
       if(res.status===401){ toast('Session expired','err'); setTimeout(()=>{location.href='/login';},1500); return false; }
@@ -443,9 +444,16 @@ async function setRating(wno, sat, saf){
       toast(err.error || 'Rating failed','err');
       return false;
     }
+    // Update ward cache so cards refresh without full reload
+    const data = await res.json();
+    if(data.wardAggregate){
+      if(!window.WARD_RATINGS_CACHE) window.WARD_RATINGS_CACHE = {};
+      window.WARD_RATINGS_CACHE[parseInt(wno,10)] = data.wardAggregate;
+    }
     return true;
   }catch(e){ console.error('setRating error', e); toast('Network error','err'); return false; }
 }
+ 
 
 function renderStarGroup(containerId,wno,type,current){
   const el=document.getElementById(containerId);
@@ -462,26 +470,32 @@ function renderStarGroup(containerId,wno,type,current){
     </svg>`;
   }).join('');
 }
-async function handleStarClick(n, wno, type){
-  // getRating is async — must await it
-  const existing = await getRating(wno) || { sat: 0, saf: 0 };
-  const sat = (type === 'sat') ? n : (existing.sat || 0);
-  const saf = (type === 'saf') ? n : (existing.saf || 0);
+
+async function handleStarClick(n,wno,type){
+  // 1. Instantly fill stars for snappy UX (optimistic update)
+  const satId = 'lp-sat-stars';
+  const safId = 'lp-saf-stars';
+  if(type==='sat') renderStarGroup(satId, wno, 'sat', n);
+  else             renderStarGroup(safId, wno, 'saf', n);
  
-  // Need BOTH values 1-5 for backend (it requires satisfaction AND safety)
-  // If the other one isn't set yet, default it to the same star so save succeeds
-  const finalSat = sat || n;
-  const finalSaf = saf || (type === 'saf' ? n : sat || n);
+  // 2. Await existing rating to get the OTHER value
+  const r = await getRating(wno);
+  const sat = (type==='sat') ? n : (r.sat || n);  // fallback to n so backend gets ≥1
+  const saf = (type==='saf') ? n : (r.saf || n);
  
-  // Optimistically render the star immediately (instant visual feedback)
-  renderStarGroup(type === 'sat' ? 'lp-sat-stars' : 'lp-saf-stars', wno, type, n);
- 
-  const ok = await setRating(wno, finalSat, finalSaf);
+  // 3. Save to backend
+  const ok = await setRating(wno, sat, saf);
   if(ok){
-    toast(`${type==='sat'?'Satisfaction':'Safety'} saved: ${'★'.repeat(n)}`, 'success');
+    toast(`${type==='sat'?'Satisfaction':'Safety'}: ${'★'.repeat(n)}`);
     if(typeof updateLPRating === 'function') await updateLPRating(wno);
+  } else {
+    // Revert optimistic update on failure
+    renderStarGroup(satId, wno, 'sat', r.sat || 0);
+    renderStarGroup(safId, wno, 'saf', r.saf || 0);
   }
 }
+ 
+
 function hoverStars(container,n,type){
   if(!container) return;
   const isSafety=(type==='saf');
@@ -736,12 +750,15 @@ function renderCorps(){
   if(cnt) cnt.textContent=`${list.length} of ${CORPS.length}`;
   if(!wrap) return;
   if(!list.length){wrap.innerHTML='<div class="griev-card empty">No corporators match filters.</div>';return}
-  const r={}; try{const raw=JSON.parse(localStorage.getItem(RATING_KEY)||'{}');Object.assign(r,raw)}catch(e){}
+  const r = window.WARD_RATINGS_CACHE || {}
   wrap.innerHTML=list.map(c=>{
     const p=pm(c.party);
-    const wr=r[c.ward_no]||{sat:0,saf:0};
-    const satStars='★'.repeat(wr.sat||0)+'☆'.repeat(5-(wr.sat||0));
-    const safStars='★'.repeat(wr.saf||0)+'☆'.repeat(5-(wr.saf||0));
+    const wr = r[c.ward_no] || { avg_satisfaction:0, avg_safety:0, rating_count:0 };
+  const satVal = Math.round(Number(wr.avg_satisfaction) || 0);
+  const safVal = Math.round(Number(wr.avg_safety) || 0);
+  const rCount = wr.rating_count || 0;
+  const satStars = '★'.repeat(satVal) + '☆'.repeat(5 - satVal);
+  const safStars = '★'.repeat(safVal) + '☆'.repeat(5 - safVal);
     return `<div class="card" style="--card-accent:${p.hex}" onclick="goPage('home');setTimeout(()=>openCorpDetail(CORPS.find(x=>x.id==='${c.id}')),150)">
       <div class="card-head">
         <div>
@@ -1014,6 +1031,17 @@ async function loadRepRatings(type){
   }catch(e){ console.warn('Load rep ratings failed:', e); return {}; }
 }
 
+async function loadWardRatings(){
+  try{
+    const res = await fetch(`${BACKEND_URL}/api/ratings/city/${CITY_CONFIG.id}`);
+    if(!res.ok) return;
+    const data = await res.json();
+    window.WARD_RATINGS_CACHE = {};
+    data.forEach(r => { window.WARD_RATINGS_CACHE[r.ward_id] = r; });
+    console.log('[Ratings] Ward cache loaded:', Object.keys(window.WARD_RATINGS_CACHE).length, 'wards');
+  }catch(e){ console.warn('loadWardRatings failed', e); }
+}
+ 
 async function loadAllRepRatings(){
   await Promise.all([
     loadRepRatings('mla'),
@@ -1774,6 +1802,7 @@ function init(){
     if(savedLang){document.documentElement.lang=savedLang;const b=document.getElementById('lang-btn');if(b)b.textContent=LANGS[savedLang];}
   }catch(e){}
   document.body.dataset.page = 'home';
+  loadWardRatings();
   loadAllRepRatings();
   buildCorpWardFilter();
   buildRepSelector();
