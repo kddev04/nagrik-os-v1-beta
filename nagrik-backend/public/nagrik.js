@@ -769,8 +769,9 @@ function renderCorps(){
       </div>
       <div class="card-row"><span class="card-lbl">Prabhag</span><span class="card-val" style="font-size:11.5px">${esc(c.ward_name)}</span></div>
       <div class="card-row"><span class="card-lbl">Reservation</span><span class="card-val">${esc(c.reservation)}</span></div>
-      <div class="card-row"><span class="card-lbl" style="color:var(--gold)">Satisfaction</span><span style="color:var(--gold);font-size:11px">${satStars}</span></div>
+       <div class="card-row"><span class="card-lbl" style="color:var(--gold)">Satisfaction</span><span style="color:var(--gold);font-size:11px">${satStars}${rCount ? ` <span style="color:var(--muted);font-size:9px">(${rCount})</span>` : ''}</span></div>
       <div class="card-row"><span class="card-lbl" style="color:var(--red)">Safety</span><span style="color:var(--red);font-size:11px">${safStars}</span></div>
+      <button class="card-rate-btn" onclick="event.stopPropagation();rateRep('corp','${c.id}')">⭐ Rate Corporator</button>
     </div>`;
   }).join('');
 }
@@ -791,7 +792,13 @@ function renderMLAs(){
   if(!wrap) return;
   if(!list.length){wrap.innerHTML='<div class="griev-card empty">No MLAs match filters.</div>';return}
   wrap.innerHTML=list.map(m=>{
-    const p=pm(m.party);
+     const p=pm(m.party);
+    const mlr = (window.REP_RATINGS_CACHE?.mla || {})[m.const] || null;
+    const mSat = mlr ? Math.round(Number(mlr.avg_satisfaction)||0) : 0;
+    const mSaf = mlr ? Math.round(Number(mlr.avg_safety)||0) : 0;
+    const mCount = mlr?.rating_count || 0;
+    const mSatStars = '★'.repeat(mSat)+'☆'.repeat(5-mSat);
+    const mSafStars = '★'.repeat(mSaf)+'☆'.repeat(5-mSaf);
     return `<div class="card" style="--card-accent:${p.hex}" onclick="goPage('home');setTimeout(()=>{if(!S.layers.mla){document.getElementById('lyr-mla').click();}openMLADetail(MLAS.find(x=>x.const===\`${m.const}\`))},180)">
       <div class="card-head">
         <div>
@@ -804,6 +811,9 @@ function renderMLAs(){
       <div class="card-row"><span class="card-lbl">Votes</span><span class="card-val">${(m.votes/1000).toFixed(0)}K</span></div>
       <div class="card-row"><span class="card-lbl">Margin</span><span class="card-val">+${(m.margin/1000).toFixed(0)}K</span></div>
       <div class="card-row"><span class="card-lbl">Vote Share</span><span class="card-val">${m.pct}%</span></div>
+      <div class="card-row"><span class="card-lbl" style="color:var(--gold)">Satisfaction</span><span style="color:var(--gold);font-size:11px">${mSatStars}${mCount ? ` <span style="color:var(--muted);font-size:9px">(${mCount} rated)</span>` : ' <span style="color:var(--muted);font-size:9px">Not rated yet</span>'}</span></div>
+      <div class="card-row"><span class="card-lbl" style="color:var(--red)">Safety</span><span style="color:var(--red);font-size:11px">${mSafStars}</span></div>
+      <button class="card-rate-btn" onclick="event.stopPropagation();rateRep('mla','${m.const}')">⭐ Rate this MLA</button>
     </div>`;
   }).join('');
 }
@@ -820,6 +830,10 @@ function renderMPs(){
   if(!wrap) return;
   wrap.innerHTML=list.map(m=>{
     const p=pm(m.party);
+    const mpr = (window.REP_RATINGS_CACHE?.mp || {})[m.const] || null;
+    const mpSat = mpr ? Math.round(Number(mpr.avg_satisfaction)||0) : 0;
+    const mpCount = mpr?.rating_count || 0;
+    const mpStars = '★'.repeat(mpSat)+'☆'.repeat(5-mpSat);
     return `<div class="card" style="--card-accent:${p.hex}" onclick="goPage('home');setTimeout(()=>{if(!S.layers.mp){document.getElementById('lyr-mp').click();}openMPDetail(MPS.find(x=>x.const===\`${m.const}\`))},180)">
       <div class="card-head">
         <div>
@@ -831,6 +845,8 @@ function renderMPs(){
       <div class="card-row"><span class="card-lbl">Alliance</span><span class="card-val">${m.alliance}</span></div>
       <div class="card-row"><span class="card-lbl">Votes</span><span class="card-val">${(m.votes/1000).toFixed(0)}K</span></div>
       <div class="card-row"><span class="card-lbl">Margin</span><span class="card-val">+${(m.margin/1000).toFixed(0)}K</span></div>
+      <div class="card-row"><span class="card-lbl" style="color:var(--gold)">Rating</span><span style="color:var(--gold);font-size:11px">${mpStars}${mpCount ? ` <span style="color:var(--muted);font-size:9px">(${mpCount} rated)</span>` : ' <span style="color:var(--muted);font-size:9px">Not rated yet</span>'}</span></div>
+      <button class="card-rate-btn" onclick="event.stopPropagation();rateRep('mp','${m.const}')">⭐ Rate this MP</button>
     </div>`;
   }).join('');
 }
