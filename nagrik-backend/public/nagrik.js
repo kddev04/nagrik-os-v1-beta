@@ -409,22 +409,26 @@ function openWardDetailByNo(wno){
 
 // ────────────────── STAR RATINGS ──────────────────
 const RATING_KEY=`nagrik_ratings_${CITY_CONFIG.id}_v3`;
-
+window._RC = {};
 async function getRating(wno){
   try{
     const jwt = getJWT();
-    if(!jwt) return { sat:0, saf:0 };
+    if(!jwt) return window._RC[wno] || { sat:0, saf:0 };
     const res = await fetch(`${BACKEND_URL}/api/ratings/ward/${wno}?cityId=${CITY_CONFIG.id}`, { headers: authHeaders() });
-    if(!res.ok) return { sat:0, saf:0 };
+    if(!res.ok) return window._RC[wno] || { sat:0, saf:0 };
     const data = await res.json();
     const yr = data.yourRating;
-    // Backend returns {satisfaction, safety} → return {sat, saf}
-    return {
+    const result = {
       sat: yr ? (yr.satisfaction || 0) : 0,
       saf: yr ? (yr.safety || 0) : 0,
       agg: data.aggregate || null
     };
-  }catch(e){ console.warn('getRating failed', e); return { sat:0, saf:0 }; }
+    window._RC[wno] = result; // ← populate cache so unhoverStars can read instantly
+    return result;
+  }catch(e){
+    console.warn('getRating failed', e);
+    return window._RC[wno] || { sat:0, saf:0 };
+  }
 }
 
 async function setRating(wno, sat, saf){
@@ -471,27 +475,39 @@ function renderStarGroup(containerId,wno,type,current){
   }).join('');
 }
 
-async function handleStarClick(n,wno,type){
-  // 1. Instantly fill stars for snappy UX (optimistic update)
+async function handleStarClick(n, wno, type){
   const satId = 'lp-sat-stars';
   const safId = 'lp-saf-stars';
+ 
+  // 1. Update local cache IMMEDIATELY (before any network call)
+  //    This means unhoverStars will read the NEW value even during network latency
+  if(!window._RC[wno]) window._RC[wno] = { sat:0, saf:0 };
+  if(type==='sat') window._RC[wno].sat = n;
+  else             window._RC[wno].saf = n;
+ 
+  // 2. Optimistic render (instant visual)
   if(type==='sat') renderStarGroup(satId, wno, 'sat', n);
   else             renderStarGroup(safId, wno, 'saf', n);
  
-  // 2. Await existing rating to get the OTHER value
-  const r = await getRating(wno);
-  const sat = (type==='sat') ? n : (r.sat || n);  // fallback to n so backend gets ≥1
-  const saf = (type==='saf') ? n : (r.saf || n);
+  // 3. Get the OTHER rating value from cache (synchronous — no network delay!)
+  const r = window._RC[wno];
+  const finalSat = (type==='sat') ? n : (r.sat || n);
+  const finalSaf = (type==='saf') ? n : (r.saf || n);
  
-  // 3. Save to backend
-  const ok = await setRating(wno, sat, saf);
+  // 4. Save to backend
+  const ok = await setRating(wno, finalSat, finalSaf);
   if(ok){
-    toast(`${type==='sat'?'Satisfaction':'Safety'}: ${'★'.repeat(n)}`);
-    if(typeof updateLPRating === 'function') await updateLPRating(wno);
+    toast(`${type==='sat' ? 'Satisfaction' : 'Safety'}: ${'★'.repeat(n)}`);
+    // Refresh the aggregate display (community average panel text)
+    // but DON'T re-render stars — they're already correct from step 2
+    await updateLPRating(wno);
   } else {
-    // Revert optimistic update on failure
-    renderStarGroup(satId, wno, 'sat', r.sat || 0);
-    renderStarGroup(safId, wno, 'saf', r.saf || 0);
+    // Revert cache and stars on failure
+    const old = await getRating(wno);
+    if(type==='sat') window._RC[wno].sat = old.sat;
+    else             window._RC[wno].saf = old.saf;
+    renderStarGroup(satId, wno, 'sat', window._RC[wno].sat || 0);
+    renderStarGroup(safId, wno, 'saf', window._RC[wno].saf || 0);
   }
 }
  
@@ -505,32 +521,45 @@ function hoverStars(container,n,type){
     s.setAttribute('stroke',filled?(isSafety?'#ff3b55':'#ffc94d'):'#48536f');
   });
 }
-async function unhoverStars(containerId, wno, type){
-  const r = await getRating(wno);
-  const current = r ? (type==='sat' ? r.sat : r.saf) : 0;
+function unhoverStars(containerId, wno, type){
+  // Read from in-memory cache — instant, zero network, no race condition
+  const r = window._RC[wno] || { sat:0, saf:0 };
+  const current = (type === 'sat') ? r.sat : r.saf;
   renderStarGroup(containerId, wno, type, current);
 }
 
+
 async function updateLPRating(wno){
-  const r = await getRating(wno) || { sat:0, saf:0, agg:null };
+  // Use cache for instant star render (no flicker)
+  const cached = window._RC[wno] || { sat:0, saf:0 };
   const wd = document.getElementById('lp-rating-ward');
   if(wd) wd.textContent = `Rating Ward ${wno}`;
-  renderStarGroup('lp-sat-stars', wno, 'sat', r.sat);
-  renderStarGroup('lp-saf-stars', wno, 'saf', r.saf);
-  const cw = document.getElementById('lp-crime-ward-ratings');
-  if(cw){
-    const agg = r.agg;
-    const avgSat = agg ? parseFloat(agg.avg_satisfaction||0).toFixed(1) : r.sat||0;
-    const avgSaf = agg ? parseFloat(agg.avg_safety||0).toFixed(1) : r.saf||0;
-    const count = agg ? agg.rating_count : (r.sat ? 1 : 0);
-    const satBar = Math.round(avgSat);
-    const safBar = Math.round(avgSaf);
-    cw.innerHTML = `<div style="font-size:11.5px;color:var(--text2);line-height:1.8">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--muted);letter-spacing:1px;margin-bottom:6px">WARD ${wno} · ${count} RATING${count!==1?'S':''}</div>
-      <div style="margin-bottom:4px">😊 <strong style="color:var(--gold)">${avgSat}/5</strong> ${'★'.repeat(satBar)+'☆'.repeat(5-satBar)} Satisfaction</div>
-      <div>👩 <strong style="color:var(--red)">${avgSaf}/5</strong> ${'★'.repeat(safBar)+'☆'.repeat(5-safBar)} Women's Safety</div>
-      ${r.sat ? `<div style="font-size:9.5px;color:var(--muted);margin-top:5px">Your rating: ${r.sat}/5 sat · ${r.saf}/5 safety</div>` : ''}
-    </div>`;
+  renderStarGroup('lp-sat-stars', wno, 'sat', cached.sat);
+  renderStarGroup('lp-saf-stars', wno, 'saf', cached.saf);
+ 
+  // Then fetch fresh data for aggregate (community average)
+  try{
+    const fresh = await getRating(wno);
+    // Re-render stars with confirmed backend value (may differ from optimistic)
+    renderStarGroup('lp-sat-stars', wno, 'sat', fresh.sat);
+    renderStarGroup('lp-saf-stars', wno, 'saf', fresh.saf);
+    const cw = document.getElementById('lp-crime-ward-ratings');
+    if(cw){
+      const agg = fresh.agg;
+      const avgSat = agg ? parseFloat(agg.avg_satisfaction||0).toFixed(1) : fresh.sat||'—';
+      const avgSaf = agg ? parseFloat(agg.avg_safety||0).toFixed(1) : fresh.saf||'—';
+      const count = agg ? agg.rating_count : 0;
+      const satBar = Math.round(parseFloat(avgSat)||0);
+      const safBar = Math.round(parseFloat(avgSaf)||0);
+      cw.innerHTML = `<div style="font-size:11.5px;color:var(--text2);line-height:1.8">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--muted);letter-spacing:1px;margin-bottom:6px">COMMUNITY · ${count} RATING${count!==1?'S':''}</div>
+        <div style="margin-bottom:3px">😊 <strong style="color:var(--gold);font-family:'IBM Plex Mono',monospace">${avgSat}/5</strong>  ${'★'.repeat(satBar)+'☆'.repeat(5-satBar)}</div>
+        <div>👩 <strong style="color:var(--red);font-family:'IBM Plex Mono',monospace">${avgSaf}/5</strong>  ${'★'.repeat(safBar)+'☆'.repeat(5-safBar)}</div>
+        ${fresh.sat ? `<div style="font-size:9.5px;color:var(--muted);margin-top:6px;border-top:1px solid var(--border);padding-top:5px">Your rating: ${fresh.sat}/5 sat · ${fresh.saf}/5 safety</div>` : ''}
+      </div>`;
+    }
+  }catch(e){
+    console.warn('updateLPRating fetch failed', e);
   }
 }
 
