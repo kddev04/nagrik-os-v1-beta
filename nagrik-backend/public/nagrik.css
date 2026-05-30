@@ -755,19 +755,14 @@ html[data-mode="dark"] .modal-head{background:linear-gradient(180deg,rgba(255,12
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none !important;transition:none !important}}
 @media print{body{background:#fff;color:#000}body::before,body::after{display:none}.topnav,.footer,.lp,.map-fabs,.modal-overlay,.mobile-nav{display:none !important}}
 /* ═══════════════════════════════════════════════════════════════
-   NAGRIK OS — V1 PATCH v2 (CORRECTED)
-   Append to END of nagrik.css.
-   
-   IMPORTANT: If you applied the earlier "V1_FINAL_PATCH.css", that one
-   targeted WRONG classes (.tn-tabs, .lp) and broke mobile. This v2
-   targets your REAL classes (.mobile-nav, .mob-tab). 
-   
-   → If you added the old patch, DELETE everything from
-     "NAGRIK OS — V1 FINAL CSS PATCH" to its end FIRST, then add this.
+   NAGRIK OS — FINAL CSS PATCH (based on real code)
+   STEP 1: Delete any previous patch blocks you added to nagrik.css
+   STEP 2: Scroll to the very bottom of nagrik.css
+   STEP 3: Paste this entire block
    ═══════════════════════════════════════════════════════════════ */
 
 
-/* ─── LIGHT MODE CONTRAST (keep — this part was correct) ───────── */
+/* ─── 1. LIGHT MODE CONTRAST ────────────────────────────────────── */
 :root {
   --muted: #5a3a14;
   --faint: #7a5530;
@@ -784,43 +779,70 @@ html[data-mode="dark"] {
 }
 
 
-/* ═══════════════════════════════════════════════════════════════
-   CHECKBOX FIX — DO NOT use appearance:none.
-   Your inline style uses accent-color (native tick). Just enlarge it.
-   ═══════════════════════════════════════════════════════════════ */
+/* ─── 2. CHECKBOX FIX ──────────────────────────────────────────────
+   DO NOT use appearance:none — it kills the native tick.
+   Your inline accent-color draws the tick, just make it bigger.
+────────────────────────────────────────────────────────────────── */
 #g-public {
   width: 22px !important;
   height: 22px !important;
   min-width: 22px !important;
   accent-color: var(--saffron) !important;
   cursor: pointer;
-  /* NO appearance:none — that's what hid the tick */
-}
-label:has(#g-public) {
-  align-items: center !important;
-}
-label:has(#g-public) span {
-  font-size: 12px !important;
+  vertical-align: middle;
 }
 
 
-/* ═══════════════════════════════════════════════════════════════
-   MOBILE BOTTOM NAV — target the REAL .mobile-nav / .mob-tab
-   ═══════════════════════════════════════════════════════════════ */
+/* ─── 3. DESKTOP NAV: remove top gap + truly center tabs ───────────
+   top:3px created the gap on the left (background bled through).
+   justify-content:space-between doesn't center if logo ≠ util width.
+   Fix: top:0 + absolute center for .tn-tabs.
+────────────────────────────────────────────────────────────────── */
+@media (min-width: 901px) {
+  .topnav {
+    top: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Truly center the tabs regardless of logo/util width */
+  .tn-tabs {
+    position: absolute !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    flex: none !important;
+    max-width: 580px !important;
+    /* Ensure it doesn't overlap brand/util on smaller screens */
+    width: max-content !important;
+  }
+
+  /* Prevent tabs from overflowing nav bounds */
+  .tn-tab {
+    padding: 5px 10px !important;
+    font-size: 9.5px !important;
+    white-space: nowrap !important;
+  }
+}
+
+
+/* ─── 4. MOBILE BOTTOM NAV (.mobile-nav / .mob-tab) ───────────────
+   Your REAL classes — not .tn-tabs which is desktop only.
+────────────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
 
-  /* The fixed bottom nav */
   .mobile-nav {
     position: fixed !important;
-    bottom: 0; left: 0; right: 0;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
     z-index: 9000 !important;
     display: flex !important;
     justify-content: space-around !important;
-    align-items: stretch !important;
+    align-items: center !important;
     background: var(--card) !important;
     border-top: 1px solid var(--border2) !important;
-    padding: 4px 2px env(safe-area-inset-bottom, 4px) !important;
-    box-shadow: 0 -2px 12px rgba(0,0,0,0.18) !important;
+    padding: 4px 0 env(safe-area-inset-bottom, 4px) !important;
+    box-shadow: 0 -2px 16px rgba(0,0,0,0.2) !important;
+    height: 60px !important;
   }
 
   .mob-tab {
@@ -830,102 +852,131 @@ label:has(#g-public) span {
     align-items: center !important;
     justify-content: center !important;
     gap: 3px !important;
-    padding: 6px 2px !important;
+    padding: 4px 2px !important;
     font-size: 9.5px !important;
     letter-spacing: .3px !important;
+    font-weight: 600 !important;
     color: var(--muted) !important;
     background: none !important;
     border: none !important;
-    position: relative !important;
-    min-height: 52px !important;
     cursor: pointer !important;
     touch-action: manipulation;
+    min-height: 52px !important;
+    position: relative !important;
+    transition: color 0.15s;
   }
 
   .mob-tab svg {
-    width: 20px !important;
-    height: 20px !important;
+    width: 22px !important;
+    height: 22px !important;
+    stroke-width: 1.8 !important;
   }
 
   .mob-tab.active {
     color: var(--saffron) !important;
   }
 
-  /* CRITICAL: reserve space so content + actions are never hidden
-     behind the fixed bottom nav. ~64px nav + safe area. */
-  body {
-    padding-bottom: 0 !important;
+  .mob-badge {
+    position: absolute !important;
+    top: 4px !important;
+    right: calc(50% - 18px) !important;
+    background: var(--saffron) !important;
+    color: #fff !important;
+    font-size: 8px !important;
+    font-weight: 700 !important;
+    min-width: 14px !important;
+    height: 14px !important;
+    border-radius: 7px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 3px !important;
   }
 
-  .page,
+  /* ── ALL CONTENT must clear the 60px bottom nav ──────────────── */
+  /* Using a universal selector so no page is missed */
+  .page-content,
   #page-home, #page-corp, #page-mla, #page-mp,
   #page-pillars, #page-rti, #page-grievance,
-  [data-page-content] {
-    padding-bottom: 90px !important;
+  .page, [class*="page-"] {
+    padding-bottom: 80px !important;
   }
 
-  /* Grievance feed + any scrollable list clears the nav */
-  #griev-my, #griev-pub, .griev-feed {
-    padding-bottom: 90px !important;
+  /* Scrollable lists inside pages */
+  #griev-my, #griev-pub, .griev-feed,
+  #corp-cards, #mla-cards, #mp-cards {
+    padding-bottom: 80px !important;
+  }
+
+  /* ── HIDE desktop nav tabs + utility on mobile ───────────────── */
+  .tn-tabs { display: none !important; }
+  .tn-status, .tn-clock, .city-sel { display: none !important; }
+  .tn-burger { display: flex !important; }
+
+  /* Keep mode toggle + lang btn always visible on mobile */
+  .tn-util {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+  #lang-btn, #mode-toggle {
+    display: flex !important;
+    width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+    align-items: center !important;
+    font-size: 10px !important;
   }
 }
 
 
-/* ═══════════════════════════════════════════════════════════════
-   MAP LEGEND / LAYER PANEL — stop it taking full screen
-   (your popout panel — make it a bottom sheet, not fullscreen)
-   ═══════════════════════════════════════════════════════════════ */
+/* ─── 5. MAP LEGEND / LAYER PANEL: half-screen, not fullscreen ────
+   The LP panel should be a bottom sheet (50vh max), sits above nav.
+────────────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
-
-  /* The layer/legend panel that pops out on the map.
-     Adjust selector if yours differs — common ones covered. */
-  #lp, .layer-panel, .map-legend, .legend-panel {
+  #lp {
     position: fixed !important;
+    top: auto !important;
+    bottom: 60px !important;   /* sits above mobile bottom nav */
     left: 0 !important;
     right: 0 !important;
-    bottom: 64px !important;        /* sits ABOVE the bottom nav */
-    top: auto !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    max-height: 50vh !important;    /* HALF screen, not full */
+    width: 100vw !important;
+    max-width: 100vw !important;
+    max-height: 55vh !important;   /* HALF screen max, not full */
+    height: auto !important;
     border-radius: 16px 16px 0 0 !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
     z-index: 8500 !important;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.3) !important;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.35) !important;
   }
 
-  /* Backdrop shouldn't cover everything opaque */
-  #lp-backdrop, .lp-backdrop {
-    background: rgba(0,0,0,0.35) !important;
+  #lp-backdrop {
+    background: rgba(0,0,0,0.4) !important;
+    z-index: 8400 !important;
+  }
+
+  /* LP body scrolls inside, with clearance at bottom */
+  .lp-body, #lp-body {
+    padding: 12px 14px 24px !important;
+    max-height: calc(55vh - 50px) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
 
-/* ═══════════════════════════════════════════════════════════════
-   DETAIL PANEL ACTIONS — when you tap a ward/corp on the map,
-   the action buttons must clear the bottom nav
-   ═══════════════════════════════════════════════════════════════ */
+/* ─── 6. ACTION BUTTONS: always reachable above bottom nav ─────────
+   Any action button area in detail panels clears the nav.
+────────────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
-
-  /* The detail/info panel that opens on map tap */
-  #detail, .detail-panel, #lp {
-    padding-bottom: 0 !important;
-  }
-
-  /* Its scrollable body gets bottom clearance */
-  .detail-body, .lp-body, #detail-body {
-    padding-bottom: 140px !important;   /* clears nav + breathing room */
-    max-height: calc(50vh - 40px) !important;
-    overflow-y: auto !important;
-  }
-
-  /* Action buttons row — visible, wrapped, tappable */
-  .lp-actions, .detail-actions, .info-actions, .rep-actions {
+  .lp-actions, .detail-actions, .info-actions, .rep-actions,
+  [class*="-actions"] {
     display: flex !important;
     flex-wrap: wrap !important;
     gap: 8px !important;
-    padding: 12px 0 !important;
+    padding: 12px 0 20px !important;
   }
 
   .lp-actions button, .lp-actions a,
@@ -934,23 +985,29 @@ label:has(#g-public) span {
   .rep-actions button, .rep-actions a {
     flex: 1 1 calc(50% - 4px) !important;
     min-height: 44px !important;
-    font-size: 12.5px !important;
-    padding: 11px 8px !important;
+    font-size: 12px !important;
+    padding: 10px 8px !important;
     pointer-events: auto !important;
     touch-action: manipulation;
-  }
-
-  /* Star rating touch targets bigger */
-  .star, .safety-star {
-    width: 30px !important;
-    height: 30px !important;
+    text-align: center !important;
   }
 }
 
 
-/* ═══════════════════════════════════════════════════════════════
-   MOBILE — hide leaflet zoom + attribution
-   ═══════════════════════════════════════════════════════════════ */
+/* ─── 7. STARS: bigger tap targets on mobile ───────────────────────
+   48×48dp is the minimum comfortable touch target.
+────────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .star, .safety-star {
+    width: 32px !important;
+    height: 32px !important;
+    touch-action: manipulation;
+  }
+}
+
+
+/* ─── 8. LEAFLET: remove zoom + attribution on mobile ─────────────
+────────────────────────────────────────────────────────────────── */
 @media (hover: none) and (pointer: coarse) {
   .leaflet-control-zoom { display: none !important; }
 }
@@ -959,49 +1016,78 @@ label:has(#g-public) span {
 }
 
 
-/* ═══════════════════════════════════════════════════════════════
-   GRIEVANCE MODAL — scrollable, fields visible (safe version)
-   ═══════════════════════════════════════════════════════════════ */
+/* ─── 9. GRIEVANCE MODAL: scrollable bottom sheet on mobile ────────
+────────────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
-  .modal-overlay { align-items: flex-end !important; padding: 0 !important; }
-  .modal {
-    width: 100vw !important; max-width: 100vw !important;
-    max-height: 92dvh !important; height: auto !important;
-    overflow-y: auto !important; -webkit-overflow-scrolling: touch;
-    border-radius: 18px 18px 0 0 !important; margin: 0 !important;
+  .modal-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
   }
-  .modal-body { padding-bottom: 40px !important; }
+  .modal {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    max-height: 92dvh !important;
+    height: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 20px 20px 0 0 !important;
+    margin: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom, 12px) !important;
+  }
+  .modal-body {
+    padding: 16px !important;
+    padding-bottom: 48px !important;
+  }
+  /* Prevent iOS zoom on input focus */
   .modal input, .modal select, .modal textarea {
-    font-size: 16px !important;   /* prevents iOS zoom */
+    font-size: 16px !important;
+    -webkit-appearance: none;
   }
 }
 
 
-/* ═══════════════════════════════════════════════════════════════
-   VOTE / COMMENT / REP-RATING UI (unchanged — these work)
-   ═══════════════════════════════════════════════════════════════ */
-.vote-row { display:flex; align-items:center; gap:8px; margin:10px 0; flex-wrap:wrap; }
-.vote-btn { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:var(--surface); border:1.5px solid var(--border3); border-radius:20px; color:var(--text); font-size:13px; font-weight:500; cursor:pointer; font-family:inherit; min-height:36px; touch-action:manipulation; }
-.vote-btn.active.upvote { background:var(--mint); border-color:var(--mint); color:#fff; }
-.vote-btn.active.downvote { background:var(--red); border-color:var(--red); color:#fff; }
-.vote-btn svg { width:16px; height:16px; }
-.vote-count { font-weight:700; min-width:18px; text-align:center; }
-.comments-section { margin-top:12px; padding-top:12px; border-top:1px solid var(--border2); }
-.comments-toggle { background:none; border:none; color:var(--saffron); cursor:pointer; font-size:13px; font-weight:600; padding:4px 0; font-family:inherit; }
-.comments-list { margin-top:10px; display:none; }
-.comments-list.show { display:block; }
-.comment-item { background:var(--surface); border:1px solid var(--border2); border-radius:10px; padding:10px 12px; margin-bottom:8px; font-size:13px; }
-.comment-author { font-weight:600; color:var(--saffron); font-size:11px; margin-bottom:4px; }
-.comment-time { color:var(--muted); font-size:10px; margin-left:6px; font-weight:400; }
-.comment-body { color:var(--text); line-height:1.5; }
-.comment-form { display:flex; gap:8px; margin-top:10px; }
-.comment-form input { flex:1; padding:10px 12px !important; border-radius:8px !important; font-size:13px !important; }
-.comment-form button { padding:10px 14px; background:var(--saffron); color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; }
-.rep-rating-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; background:linear-gradient(135deg,var(--saffron),var(--saffron3,var(--saffron2))); color:#fff; border-radius:12px; font-size:12px; font-weight:700; font-family:'IBM Plex Mono',monospace; }
-.rep-rating-badge.no-data { background:var(--card2); color:var(--muted); border:1px dashed var(--border3); }
-.rep-rating-badge svg { width:12px; height:12px; fill:currentColor; }
-.rep-rating-count { font-size:10px; opacity:.85; font-weight:500; }
+/* ─── 10. REP RATING BADGES (for card display) ─────────────────────
+────────────────────────────────────────────────────────────────── */
+.rep-rating-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: linear-gradient(135deg, var(--saffron), var(--saffron2, #e85a00));
+  color: #fff;
+  border-radius: 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.rep-rating-badge.no-data {
+  background: var(--card2);
+  color: var(--muted);
+  border: 1px dashed var(--border3);
+}
+.rep-rating-count {
+  font-size: 9px;
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+/* Rate button in cards */
+.card-rate-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px 10px;
+  background: transparent;
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 11.5px;
+  font-family: inherit;
+  transition: all 0.15s;
+  text-align: center;
+}
+.card-rate-btn:hover { border-color: var(--saffron); color: var(--saffron); }
 
 /* ═══════════════════════════════════════════════════════════════
-   END V1 PATCH v2
+   END NAGRIK OS FINAL PATCH
    ═══════════════════════════════════════════════════════════════ */
